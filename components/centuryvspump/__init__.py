@@ -54,4 +54,9 @@ async def to_code(config):
 async def register_centuryvspump_device(var, config):
     cg.add(var.set_address(config[CONF_ADDRESS]))
     await cg.register_component(var, config)
-    return await modbus.register_modbus_device(var, config)
+    # ESPHome renamed this helper in 2026.7. Keep compatibility with older
+    # releases while preferring the replacement when it is available.
+    register_device = getattr(modbus, "register_modbus_client_device", None)
+    if register_device is None:
+        register_device = modbus.register_modbus_device
+    return await register_device(var, config)

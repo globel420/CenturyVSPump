@@ -1,3 +1,6 @@
+# Legacy upstream example retained for historical reference only.
+# For the autonomous VGreen EVO build, use vgreen_evo_atom.yaml instead.
+
 esphome:
   platform: esp32
   name: century-vs-pump-controller

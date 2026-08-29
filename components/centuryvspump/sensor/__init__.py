@@ -14,6 +14,7 @@ from ..const import (
     CONF_CENTURY_VS_PUMP_ID,
     CONF_PAGE,
     CONF_SCALE,
+    CONF_SIGNED,
 )
 
 DEPENDENCIES = ["centuryvspump"]
@@ -37,9 +38,10 @@ CONFIG_SCHEMA = cv.All(
         {
             cv.GenerateID(): cv.declare_id(CenturyVSPumpSensor),
             cv.Required(CONF_TYPE): cv.enum(SENSOR_TYPES),
-            cv.Optional(CONF_ADDRESS, default=0): cv.positive_int,
-            cv.Optional(CONF_PAGE, default=0): cv.positive_int,
-            cv.Optional(CONF_SCALE, default=1): cv.positive_int,
+            cv.Optional(CONF_ADDRESS, default=0): cv.int_range(min=0, max=0xFF),
+            cv.Optional(CONF_PAGE, default=0): cv.int_range(min=0, max=0xFF),
+            cv.Optional(CONF_SCALE, default=1.0): cv.positive_float,
+            cv.Optional(CONF_SIGNED, default=False): cv.boolean,
         }
     ),
 )
@@ -49,13 +51,15 @@ async def to_code(config):
     if config[CONF_TYPE] == "rpm":
         config[CONF_PAGE] = 0
         config[CONF_ADDRESS] = 0
-        config[CONF_SCALE] = 4
+        config[CONF_SCALE] = 4.0
+        config[CONF_SIGNED] = False
 
     var = cg.new_Pvariable(
         config[CONF_ID],
         config[CONF_PAGE],
         config[CONF_ADDRESS],
         config[CONF_SCALE],
+        config[CONF_SIGNED],
     )
     await cg.register_component(var, config)
     await sensor.register_sensor(var, config)

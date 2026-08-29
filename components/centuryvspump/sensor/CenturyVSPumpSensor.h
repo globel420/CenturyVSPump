@@ -13,7 +13,7 @@ namespace esphome
         class CenturyVSPumpSensor : public CenturyPumpItemBase, public Component, public Sensor
         {
         public:
-            CenturyVSPumpSensor(uint8_t page, uint8_t address, uint16_t scale) : CenturyPumpItemBase(), page_(page), address_(address), scale_(scale)
+            CenturyVSPumpSensor(uint8_t page, uint8_t address, float scale, bool is_signed = false) : CenturyPumpItemBase(), page_(page), address_(address), scale_(scale), is_signed_(is_signed)
             {
             }
 
@@ -22,7 +22,8 @@ namespace esphome
         private:
             uint8_t page_;
             uint8_t address_;
-            uint16_t scale_;
+            float scale_;
+            bool is_signed_;
         };
 
     }

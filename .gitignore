@@ -161,3 +161,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# ESPHome local state and credentials
+.esphome/
+secrets.yaml
+
+# Local research/build scratch files
+tmp/
+tests/test_stock_schedule

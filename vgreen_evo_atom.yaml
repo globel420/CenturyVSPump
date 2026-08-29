@@ -1,0 +1,397 @@
+substitutions:
+  device_name: vgreen-evo-controller
+  friendly_name: VGreen EVO Controller
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+  min_version: 2026.8.1
+  comment: Offline stock-style controller for VGreen EVO EVC165
+  project:
+    name: globel420.vgreen_evo_offline
+    version: 0.1.0
+  on_boot:
+    priority: -100
+    then:
+      - lambda: |-
+          id(evo_controller).set_schedule_set(id(saved_schedule_set_b) ? 1 : 0);
+          id(evo_controller).set_schedule_profile(id(saved_schedule_profile));
+          id(evo_controller).set_freeze_enabled(id(saved_freeze_enabled));
+          id(evo_controller).set_paused(id(saved_maintenance_pause));
+
+esp32:
+  board: m5stack-atom
+  framework:
+    type: arduino
+
+logger:
+  level: INFO
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  reboot_timeout: 0s
+  power_save_mode: none
+  ap:
+    ssid: "${friendly_name} Setup"
+    password: !secret fallback_ap_password
+
+captive_portal:
+
+api:
+  reboot_timeout: 0s
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+    on_begin:
+      then:
+        - lambda: |-
+            id(evo_controller).set_paused(true);
+
+web_server:
+  port: 80
+  version: 3
+  auth:
+    type: digest
+    username: !secret web_username
+    password: !secret web_password
+
+external_components:
+  - source:
+      type: local
+      path: components
+    components:
+      - centuryvspump
+      - vgreen_evo_controller
+
+uart:
+  id: pump_uart
+  baud_rate: 9600
+  rx_pin: GPIO22
+  tx_pin: GPIO19
+
+modbus:
+  id: pump_modbus
+  send_wait_time: 200ms
+  turnaround_time: 50ms
+
+centuryvspump:
+  id: pump
+  modbus_id: pump_modbus
+  address: 0x15
+  update_interval: 5s
+
+number:
+  - platform: centuryvspump
+    id: pump_demand
+    name: Internal Pump Demand
+    century_vs_pump_id: pump
+    internal: true
+
+switch:
+  - platform: centuryvspump
+    id: pump_run
+    name: Internal Pump Run
+    century_vs_pump_id: pump
+    internal: true
+
+  - platform: template
+    id: maintenance_pause
+    name: Maintenance Pause
+    icon: mdi:pause-circle
+    lambda: |-
+      return id(evo_controller).is_paused();
+    turn_on_action:
+      - lambda: |-
+          id(saved_maintenance_pause) = true;
+          id(evo_controller).set_paused(true);
+    turn_off_action:
+      - lambda: |-
+          id(saved_maintenance_pause) = false;
+          id(evo_controller).resume_schedule();
+
+  - platform: template
+    id: freeze_protection_enabled
+    name: Experimental Local Freeze Protection
+    icon: mdi:snowflake-thermometer
+    lambda: |-
+      return id(saved_freeze_enabled);
+    turn_on_action:
+      - lambda: |-
+          id(saved_freeze_enabled) = true;
+          id(evo_controller).set_freeze_enabled(true);
+    turn_off_action:
+      - lambda: |-
+          id(saved_freeze_enabled) = false;
+          id(evo_controller).set_freeze_enabled(false);
+
+sensor:
+  - platform: centuryvspump
+    id: pump_actual_rpm
+    name: Actual Pump Speed
+    century_vs_pump_id: pump
+    type: rpm
+    unit_of_measurement: RPM
+    accuracy_decimals: 0
+
+  - platform: centuryvspump
+    id: pump_reported_demand
+    name: Reported Pump Demand
+    century_vs_pump_id: pump
+    type: custom
+    page: 0
+    address: 3
+    scale: 4
+    unit_of_measurement: RPM
+    accuracy_decimals: 0
+
+  - platform: centuryvspump
+    id: pump_ambient
+    name: Experimental Motor Ambient Temperature
+    century_vs_pump_id: pump
+    type: custom
+    page: 0
+    address: 7
+    scale: 128
+    signed: true
+    unit_of_measurement: "°F"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    disabled_by_default: true
+
+  - platform: template
+    name: Controller Target Speed
+    unit_of_measurement: RPM
+    accuracy_decimals: 0
+    update_interval: 1s
+    lambda: |-
+      return id(evo_controller).get_target_rpm();
+
+  - platform: template
+    name: Schedule Hour
+    unit_of_measurement: h
+    accuracy_decimals: 0
+    update_interval: 10s
+    lambda: |-
+      return id(evo_controller).get_schedule_hour();
+
+  - platform: wifi_signal
+    name: Wi-Fi Signal
+    update_interval: 60s
+    disabled_by_default: true
+
+binary_sensor:
+  - platform: template
+    name: Pump Communication Healthy
+    device_class: connectivity
+    lambda: |-
+      return id(evo_controller).is_communication_healthy();
+
+  - platform: template
+    name: Freeze Temperature Available
+    device_class: connectivity
+    lambda: |-
+      return id(evo_controller).is_freeze_available();
+
+  - platform: template
+    name: Motor Fault Latched
+    device_class: problem
+    lambda: |-
+      return id(evo_controller).is_motor_fault_active();
+
+  - platform: gpio
+    id: atom_button
+    internal: true
+    pin:
+      number: GPIO39
+      inverted: true
+    on_multi_click:
+      - timing:
+          - ON for at least 3s
+        then:
+          - lambda: |-
+              id(saved_maintenance_pause) = false;
+              id(evo_controller).resume_schedule();
+      - timing:
+          - ON for 50ms to 350ms
+          - OFF for 50ms to 350ms
+          - ON for 50ms to 350ms
+          - OFF for 50ms to 350ms
+          - ON for 50ms to 350ms
+          - OFF for at least 500ms
+        then:
+          - script.execute: report_schedule
+      - timing:
+          - ON for 50ms to 350ms
+          - OFF for 50ms to 350ms
+          - ON for 50ms to 350ms
+          - OFF for at least 500ms
+        then:
+          - lambda: |-
+              id(evo_controller).pause();
+      - timing:
+          - ON for 50ms to 350ms
+          - OFF for at least 500ms
+        then:
+          - lambda: |-
+              id(evo_controller).start_override();
+
+vgreen_evo_controller:
+  id: evo_controller
+  centuryvspump_id: pump
+  run_switch_id: pump_run
+  demand_number_id: pump_demand
+  ambient_temperature_id: pump_ambient
+
+select:
+  - platform: template
+    id: schedule_set
+    name: Stock Schedule Set
+    icon: mdi:calendar-clock
+    options:
+      - A
+      - B
+    optimistic: true
+    restore_value: true
+    initial_option: A
+    set_action:
+      - lambda: |-
+          id(saved_schedule_set_b) = (x == "B");
+          id(evo_controller).set_schedule_set(x == "B" ? 1 : 0);
+          id(evo_controller).restart_schedule();
+
+  - platform: template
+    id: schedule_profile
+    name: Stock Schedule Profile
+    icon: mdi:numeric
+    options:
+      - "1"
+      - "2"
+      - "3"
+      - "4"
+      - "5"
+      - "6"
+      - "7"
+      - "8"
+    optimistic: true
+    restore_value: true
+    initial_option: "1"
+    set_action:
+      - lambda: |-
+          const uint8_t profile = static_cast<uint8_t>(atoi(x.c_str()));
+          id(saved_schedule_profile) = profile;
+          id(evo_controller).set_schedule_profile(profile);
+          id(evo_controller).restart_schedule();
+
+button:
+  - platform: template
+    name: Start 24-Hour Override
+    icon: mdi:speedometer
+    on_press:
+      - lambda: |-
+          id(evo_controller).start_override();
+
+  - platform: template
+    name: Resume Current Schedule
+    icon: mdi:play-circle
+    on_press:
+      - lambda: |-
+          id(saved_maintenance_pause) = false;
+          id(evo_controller).resume_schedule();
+
+  - platform: template
+    name: Restart Schedule at Hour One
+    icon: mdi:restart
+    on_press:
+      - lambda: |-
+          id(evo_controller).restart_schedule();
+
+text_sensor:
+  - platform: template
+    name: Controller Mode
+    update_interval: 1s
+    lambda: |-
+      return id(evo_controller).get_mode_name();
+
+light:
+  - platform: esp32_rmt_led_strip
+    id: atom_led
+    name: Controller Status LED
+    internal: true
+    pin: GPIO27
+    num_leds: 1
+    chipset: SK6812
+    channel_colors: GRB
+    default_transition_length: 0s
+    restore_mode: ALWAYS_OFF
+
+script:
+  - id: report_schedule
+    mode: restart
+    then:
+      - repeat:
+          count: !lambda |-
+            return id(evo_controller).get_schedule_profile();
+          then:
+            - light.turn_on:
+                id: atom_led
+                red: 1.0
+                green: 1.0
+                blue: 1.0
+                brightness: 30%
+            - delay: 250ms
+            - light.turn_off: atom_led
+            - delay: 250ms
+
+interval:
+  - interval: 1s
+    then:
+      - if:
+          condition:
+            not:
+              script.is_running: report_schedule
+          then:
+            - lambda: |-
+                auto call = id(atom_led).turn_on();
+                call.set_brightness(0.20f);
+                if (id(evo_controller).is_paused()) {
+                  call.set_rgb(1.0f, 0.0f, 0.0f);
+                } else if (!id(evo_controller).is_communication_healthy()) {
+                  call.set_rgb(1.0f, 0.35f, 0.0f);
+                } else if (id(evo_controller).is_motor_fault_active()) {
+                  call.set_rgb(1.0f, 0.0f, 0.0f);
+                } else if (id(evo_controller).is_freeze_active()) {
+                  call.set_rgb(0.0f, 0.4f, 1.0f);
+                } else if (id(evo_controller).is_override_active()) {
+                  call.set_rgb(0.65f, 0.0f, 1.0f);
+                } else if (id(evo_controller).get_target_rpm() > 0) {
+                  call.set_rgb(0.0f, 1.0f, 0.0f);
+                } else {
+                  call.set_rgb(0.0f, 0.0f, 0.25f);
+                }
+                call.perform();
+
+globals:
+  - id: saved_schedule_set_b
+    type: bool
+    restore_value: true
+    initial_value: "false"
+
+  - id: saved_schedule_profile
+    type: uint8_t
+    restore_value: true
+    initial_value: "1"
+
+  - id: saved_freeze_enabled
+    type: bool
+    restore_value: true
+    initial_value: "false"
+
+  - id: saved_maintenance_pause
+    type: bool
+    restore_value: true
+    initial_value: "true"

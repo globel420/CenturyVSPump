@@ -1,0 +1,31 @@
+name: Validate firmware
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  host-tests-and-firmware:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test every stock schedule boundary
+        run: tests/run_host_tests.sh
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install pinned ESPHome
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Validate and compile the reference firmware
+        run: |
+          cp secrets.example.yaml secrets.yaml
+          esphome config vgreen_evo_atom.yaml >/dev/null
+          esphome compile vgreen_evo_atom.yaml
