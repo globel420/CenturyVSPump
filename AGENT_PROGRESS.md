@@ -1,14 +1,14 @@
 # Agent Progress
 
 ## Current Resume Point
-- Last updated: 2026-10-12 12:25
+- Last updated: 2026-10-12 14:16
 - Active goal: Implement manual-equivalent controls on the M5Stack front button, standalone schedules and power recovery, plus optional HA hour selection and timing reset
-- Current status: Candidate d2c66e1 published as v0.2.0-rc1; both CI builds pass; HA-managed candidate saved, validated, and fully compiled with existing private settings; not uploaded
-- Files touched: Firmware component/transport, reference YAML, tests and host stubs, CI, requirements, example secrets, README, INSTALL, docs, CHANGELOG, AGENT_PROGRESS.md
-- Commands run: tests/run_host_tests.sh; ESPHome 2026.9.1 config and full compile; git diff --check; read-only live YAML export and fingerprint comparison
-- Validation state: PASS: host tests, local ESP32 build, CI on 2026.9.0 and 2026.9.1, live HA YAML validation and full private build (997335-byte reported image). Live device still reports 0.1.0 / ESPHome 2026.9.0, connected and running at 1550 RPM. Actual cold-power behavior remains unverified.
-- Next action: Await physical-readiness confirmation, upload the private HA image, verify actual boot/button behavior, then implement HA hour selector/reset migration
-- Blockers: Full physical equivalence, including experimental freeze sensor, is not established; supervised hardware verification remains required
+- Current status: Firmware d2c66e1 installed and both HA dashboard migrations complete. Real Hour 15 selection and default reset passed; B1 and approximately 1550 RPM preserved. Publishing the HA source and evidence.
+- Files touched: home_assistant/controls.json, home_assistant/dashboard_update.mjs, tools/ha_api.mjs, tests/test_home_assistant.mjs, CI, README, docs/HOME_ASSISTANT.md, CHANGELOG, AGENT_PROGRESS.md
+- Commands run: tests/run_host_tests.sh PASS; node --test tests/test_home_assistant.mjs PASS; node --check tools/ha_api.mjs PASS; git diff --check PASS; native HA edits with API readbacks and semantic comparisons
+- Validation state: Device metadata confirms 0.2.0-rc1 / ESPHome 2026.9.1. Automatic warm-start Hour 1/priming observed. Actual hour and phase follow HA selection/default reset; timing automation enabled and periodic triggers observed. Both dashboard readbacks exactly match reviewed payloads; no retired timing references in any available dashboard. Cold-power and physical button operation remain unverified.
+- Next action: Push and verify updated GitHub checks; wait for user's readiness/observations for cold power and physical M5 button tests. Do not reinstall the already-running candidate just to repeat a software restart.
+- Blockers: User presence is required for a true power-cycle, physical button and supervised hydraulic/offline checks. Experimental freeze sensor equivalence remains outside the verified feature set. No hardware test has been claimed complete.
 - Do not repeat: Do not simplify the button mapping; do not hard-code 10:50 PM in firmware; do not publish configured firmware binaries or credentials. macOS credential helper stalled; scoped gh auth git-credential push succeeded. Browser raw-GitHub navigation was blocked; local reviewed candidate was used.
 
 ## Chapter Log
@@ -142,3 +142,23 @@
 - Validation: Device-page readback still reports installed 0.1.0 on ESPHome 2026.9.0, schedule running, connected, actual/target 1550 RPM. Candidate is built, not installed or physically verified.
 - Next: Use the prepared private image for supervised installation; observe cold power with no Reset press, all front-button sequences, profile retention, then finish HA controls described in docs/HOME_ASSISTANT.md.
 - Blockers: Awaiting readiness confirmation for the live pump test. Experimental freeze behavior remains unverified. HA dropdown/default-reset UI and removal of obsolete SMUD controls are still outstanding.
+
+### 2026-10-12 13:15 - firmware live and phase correction verified
+- Goal: Complete the approved implementation, including HA controls and runtime validation.
+- Progress: Created persistent time helper at 23:00:00 and queued Pool Pump Timing script through the administrator UI. Installed the fingerprint-matched private candidate; new runtime diagnostics appeared, motor entered Hour 1/priming at about 3450 RPM without a Reset or Run command. Invoked the timing routine and confirmed Hour 15 with actual 1550 RPM on B1.
+- Decisions: API credential located in the managed store is read-only; use it for allowed observations/backups and the existing administrator browser for configuration. An unsupported has_service Jinja expression was caught and replaced by availability of the actual new schedule-position sensor before the script was exercised. Do not infer cold-power success from an OTA software restart.
+- Files changed: tools/ha_api.mjs, home_assistant/controls.json; live input_datetime.pool_pump_hour_one_start and script.pool_pump_timing; private dashboard backups in .cache/recovery/
+- Commands/results: Local parse of 20 templates PASS; HA editor saved the script; native phase action discovered as esphome.vgreen_pump_set_schedule_phase; live action moved the reported phase to Hour 15 and actual speed to 1550 RPM.
+- Validation: New diagnostics include schedule_position_seconds, controller_uptime, controller_reset_reason and last_controller_button_action under the existing backyard_vgreen_pool_pump prefix. Reset reason reports software via esp_restart. Actual GPIO/LED observations and true cold power remain pending.
+- Next: Finish the dropdown flow currently open in the administrator browser, add reset/clock sync, retire old SMUD controls, publish source; then verify physical sequences and power restoration.
+- Blockers: Physical triple-press observation was requested asynchronously; no response recorded yet. Freeze remains experimental.
+
+### 2026-10-12 14:16 - native HA controls deployed and verified
+- Goal: Finish the HA implementation while keeping autonomous startup and physical proof boundaries explicit.
+- Progress: Created the actual-state 1–24 Template Select and reconnect/quarter-hour automation. Added hour selection, default reset and 11 PM note to Pool Pump and Home Operations. Disabled both obsolete pump SMUD automations; removed their controls, stale 10:45/10:50 text and B1-only phase guidance. Preserved energy, billing, unrelated diagnostics and private rollback exports.
+- Decisions: The normal M5 boot contains no Reset/HA/Wi-Fi prerequisite; motor health gates remain. Inspected the installed ESPHome version's Wi-Fi/API setup code: neither blocks setup waiting for a connection. No physical cold-start repair claim is made from software evidence. Existing legacy helper entities/history are retained for rollback and no longer drive scheduling.
+- Files changed: home_assistant/, tools/ha_api.mjs, tests/test_home_assistant.mjs, CI, README, docs/HOME_ASSISTANT.md, CHANGELOG, AGENT_PROGRESS.md
+- Commands/results: Both server dashboard readbacks exactly equal reviewed payloads; all available dashboards have zero retired timing references. Host C++ suites and three HA structural/migration tests PASS; JS syntax and diff checks PASS. Device page confirms 0.2.0-rc1 / ESPHome 2026.9.1.
+- Validation: Selecting Hour 15 updated the actual M5 hour and saved a new reference. Reset restored 23:00:00 and current Hour 16. B1, normal running mode and approximately 1550 RPM persisted. Reported phase matched the 11 PM reference within a second at its report time. Periodic sync has triggered. Saved a private screenshot of the finished controls.
+- Next: Publish and verify GitHub checks, then collect user-supervised physical button, cold-power and offline results. The explicit power-test readiness question is awaiting an answer.
+- Blockers: No actual front-button action has been observed; last action still none. Reset reason is still software via esp_restart, not a cold-power observation. Supervised hydraulic and experimental freeze behavior remain unverified.

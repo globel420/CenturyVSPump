@@ -42,7 +42,7 @@ The decoder waits 500 ms after the last short press to distinguish one/two/three
 
 The `set_schedule_phase` native API action accepts an integer `seconds` from 0 through 86399. Hour H begins at `(H - 1) * 3600`. It changes only the schedule clock: Pause, Override and fault checks remain in force. A correction into a scheduled-off period stops priming; repeated corrections do not restart a running prime.
 
-The planned HA controls use a 1–24 hour dropdown and **Reset to Default Timing**. Default Hour 1 begins at **11:00 PM Pacific**; a manual hour selection keeps a new timing reference. The 11 PM reference belongs to Home Assistant, not the standalone firmware. See [Home Assistant controls](docs/HOME_ASSISTANT.md) for the integration and deployment status.
+The deployed HA controls use a 1–24 hour dropdown and **Reset to Default Timing**. Default Hour 1 begins at **11:00 PM Pacific**; a manual hour selection keeps a new timing reference. The 11 PM reference belongs to Home Assistant, not the standalone firmware. See [Home Assistant controls](docs/HOME_ASSISTANT.md) for reusable configuration, live results and the remaining physical checks.
 
 ## Validation status
 
@@ -52,7 +52,10 @@ The planned HA controls use a 1–24 hour dropdown and **Reset to Default Timing
 | Manual button, LED patterns, startup and phase correction | Host tested; controller tests use an explicitly separate transport double |
 | ESPHome configuration | Compiled with the pinned version in `requirements-dev.txt` |
 | ESPHome 2026.7+ response layout | Supported |
-| EVC165 serial control | Reported working by current upstream field testing; not yet verified on this user's pump |
+| Installed candidate | 0.2.0-rc1 / ESPHome 2026.9.1 confirmed on the target; automatic Hour 1 after software restart observed |
+| EVC165 serial control | Live connection and approximately 1550 RPM reports observed; hydraulic operation still needs supervision |
+| HA hour selector/default reset | Real device phase changes and timing-reference persistence verified; profile and running speed preserved |
+| Cold-power startup and physical button | Not yet verified on the enclosure; software restart does not prove cold-power recovery |
 | Motor ambient-temperature register | Implemented as an experimental freeze input; must be verified on the actual EVC165 |
 | Wiring, switch positions, dry-run protection, and real pump behavior | Physical verification still required |
 
@@ -83,6 +86,8 @@ Run all host tests with `tests/run_host_tests.sh`. Validate and compile the comp
 - `components/vgreen_evo_controller/` — offline schedule and behavior state machine.
 - `tests/` — host tests for every stock schedule boundary.
 - `vgreen_evo_atom.yaml` — M5Stack ATOM Lite reference firmware.
+- `home_assistant/` — native HA controls and narrowly scoped dashboard migration tool.
+- `tools/ha_api.mjs` — credential-file-based HA readback/configuration client.
 - `example_century_vs_pump.yaml` — original minimal upstream example, retained for reference.
 
 ## Sources and upstream credit

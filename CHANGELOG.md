@@ -9,5 +9,7 @@
 - Add an optional phase-alignment action that preserves Pause/Override and does not repeatedly restart priming.
 - Add controller and button unit tests alongside all 16 schedule tables; build on ESPHome 2026.9.0 and 2026.9.1.
 - Public build artifacts use example credentials only. Device-configured binaries remain private.
+- Deploy native HA Schedule Hour 1–24 selection, persistent user-selected timing, 11 PM default reset, and reconnect/periodic alignment. Verify real phase changes without changing the selected profile or running speed.
+- Replace obsolete forced-B1/SMUD controls on both dashboards while preserving energy monitoring and private rollback snapshots.
 
-The reported cold-power Reset requirement is not declared fixed until tested on the powered enclosure and motor. Freeze temperature/protection remains experimental. HA hour-selection UI and supervised deployment are tracked separately from a successful compile.
+The candidate is installed and its automatic Hour 1 software-restart behavior is observed. The reported cold-power Reset requirement is not declared fixed until tested on the powered enclosure and motor. Physical button checks remain pending and freeze temperature/protection remains experimental.

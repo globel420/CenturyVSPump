@@ -1,0 +1,268 @@
+{
+  "schema": "vgreen-ha-controls/v1",
+  "status": "deployed and live-checked on 2026-10-12; reusable native HA configuration reference",
+  "reference_helper": {
+    "name": "Pool Pump Hour One Start",
+    "has_date": false,
+    "has_time": true,
+    "initial_time": "23:00:00"
+  },
+  "script": {
+    "alias": "Pool Pump Timing",
+    "description": "Change or restore the M5 schedule phase. Preserves the selected profile, Pause, Override and motor fault checks. Default Hour 1 begins at 11 PM Pacific.",
+    "mode": "queued",
+    "max": 10,
+    "fields": {
+      "operation": {
+        "name": "Operation",
+        "default": "sync",
+        "selector": {
+          "select": {
+            "options": [
+              "sync",
+              "set_hour",
+              "reset"
+            ]
+          }
+        }
+      },
+      "hour": {
+        "name": "Schedule hour",
+        "description": "Hour 1 through 24 of the selected pump schedule.",
+        "selector": {
+          "number": {
+            "min": 1,
+            "max": 24,
+            "step": 1,
+            "mode": "box"
+          }
+        }
+      }
+    },
+    "sequence": [
+      {
+        "variables": {
+          "op": "{{ operation | default('sync') }}",
+          "selected_hour": "{{ hour | default(0) | int(0) }}"
+        }
+      },
+      {
+        "if": [
+          {
+            "condition": "template",
+            "value_template": "{{ not has_value('sensor.backyard_vgreen_pool_pump_schedule_hour') or not has_value('sensor.backyard_vgreen_pool_pump_schedule_position_seconds') }}"
+          }
+        ],
+        "then": [
+          {
+            "stop": "The updated M5 controller is not available for schedule alignment.",
+            "error": true
+          }
+        ]
+      },
+      {
+        "if": [
+          {
+            "condition": "template",
+            "value_template": "{{ op not in ['sync', 'set_hour', 'reset'] or (op == 'set_hour' and not (1 <= selected_hour | int <= 24)) }}"
+          }
+        ],
+        "then": [
+          {
+            "stop": "Choose a schedule hour from 1 through 24.",
+            "error": true
+          }
+        ]
+      },
+      {
+        "variables": {
+          "seconds_now": "{% set t = now() %}{{ t.hour * 3600 + t.minute * 60 + t.second }}"
+        }
+      },
+      {
+        "choose": [
+          {
+            "conditions": [
+              {
+                "condition": "template",
+                "value_template": "{{ op == 'set_hour' }}"
+              }
+            ],
+            "sequence": [
+              {
+                "variables": {
+                  "new_reference": "{{ ((seconds_now | int) - ((selected_hour | int) - 1) * 3600) % 86400 }}"
+                }
+              },
+              {
+                "action": "input_datetime.set_datetime",
+                "target": {
+                  "entity_id": "input_datetime.pool_pump_hour_one_start"
+                },
+                "data": {
+                  "time": "{{ '%02d:%02d:%02d' | format((new_reference | int) // 3600, ((new_reference | int) % 3600) // 60, (new_reference | int) % 60) }}"
+                }
+              }
+            ]
+          },
+          {
+            "conditions": [
+              {
+                "condition": "template",
+                "value_template": "{{ op == 'reset' }}"
+              }
+            ],
+            "sequence": [
+              {
+                "action": "input_datetime.set_datetime",
+                "target": {
+                  "entity_id": "input_datetime.pool_pump_hour_one_start"
+                },
+                "data": {
+                  "time": "23:00:00"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "variables": {
+          "reference_time": "{{ states('input_datetime.pool_pump_hour_one_start') }}"
+        }
+      },
+      {
+        "if": [
+          {
+            "condition": "template",
+            "value_template": "{{ not (reference_time | regex_match('^([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$')) }}"
+          }
+        ],
+        "then": [
+          {
+            "stop": "The stored schedule timing reference is invalid; no phase command was sent.",
+            "error": true
+          }
+        ]
+      },
+      {
+        "variables": {
+          "phase_seconds": "{% set p = reference_time.split(':') %}{% set start = (p[0] | int) * 3600 + (p[1] | int) * 60 + (p[2] | int) %}{% set t = now() %}{{ (t.hour * 3600 + t.minute * 60 + t.second - start) % 86400 }}"
+        }
+      },
+      {
+        "action": "esphome.vgreen_pump_set_schedule_phase",
+        "data": {
+          "seconds": "{{ phase_seconds | int }}"
+        }
+      },
+      {
+        "wait_template": "{% set p = reference_time.split(':') %}{% set start = (p[0] | int) * 3600 + (p[1] | int) * 60 + (p[2] | int) %}{% set t = now() %}{% set expected = ((t.hour * 3600 + t.minute * 60 + t.second - start) % 86400) // 3600 + 1 %}{{ states('sensor.backyard_vgreen_pool_pump_schedule_hour') | int(0) == expected }}",
+        "timeout": "00:00:15",
+        "continue_on_timeout": false
+      }
+    ]
+  },
+  "automation": {
+    "alias": "Pool Pump - Synchronize Schedule Timing",
+    "description": "Restore the chosen schedule phase after M5 or HA reconnection, and correct drift. Never changes profile, Pause or Override.",
+    "triggers": [
+      {
+        "trigger": "homeassistant",
+        "event": "start"
+      },
+      {
+        "trigger": "state",
+        "entity_id": "sensor.backyard_vgreen_pool_pump_schedule_hour",
+        "from": "unavailable"
+      },
+      {
+        "trigger": "state",
+        "entity_id": "sensor.backyard_vgreen_pool_pump_schedule_hour",
+        "from": "unknown"
+      },
+      {
+        "trigger": "time_pattern",
+        "minutes": "/15",
+        "seconds": "0"
+      }
+    ],
+    "actions": [
+      {
+        "wait_template": "{{ has_value('sensor.backyard_vgreen_pool_pump_schedule_hour') and has_value('sensor.backyard_vgreen_pool_pump_schedule_position_seconds') }}",
+        "timeout": "00:02:00",
+        "continue_on_timeout": false
+      },
+      {
+        "action": "script.pool_pump_timing",
+        "data": {
+          "operation": "sync"
+        }
+      }
+    ],
+    "mode": "restart"
+  },
+  "select": {
+    "name": "Pool Pump Schedule Hour",
+    "icon": "mdi:clock-outline",
+    "state": "{% set h = states('sensor.backyard_vgreen_pool_pump_schedule_hour') | int(0) %}{{ h | string if 1 <= h <= 24 else none }}",
+    "options": "{{ range(1, 25) | map('string') | list }}",
+    "select_option": [
+      {
+        "action": "script.pool_pump_timing",
+        "data": {
+          "operation": "set_hour",
+          "hour": "{{ option | int }}"
+        }
+      }
+    ],
+    "availability": "{{ has_value('sensor.backyard_vgreen_pool_pump_schedule_hour') and has_value('sensor.backyard_vgreen_pool_pump_schedule_position_seconds') }}"
+  },
+  "dashboard_cards": [
+    {
+      "type": "tile",
+      "entity": "select.pool_pump_schedule_hour",
+      "name": "Schedule Hour",
+      "icon": "mdi:clock-outline",
+      "tap_action": {
+        "action": "more-info"
+      },
+      "features": [
+        {
+          "type": "select-options",
+          "style": "dropdown"
+        }
+      ],
+      "grid_options": {
+        "columns": 6,
+        "rows": 2
+      }
+    },
+    {
+      "type": "button",
+      "name": "Reset to Default Timing",
+      "icon": "mdi:clock-check-outline",
+      "tap_action": {
+        "action": "perform-action",
+        "perform_action": "script.pool_pump_timing",
+        "data": {
+          "operation": "reset"
+        }
+      },
+      "hold_action": {
+        "action": "none"
+      },
+      "grid_options": {
+        "columns": 6,
+        "rows": 2
+      }
+    },
+    {
+      "type": "markdown",
+      "content": "**Default timing:** Hour 1 is **11:00 PM–midnight** (Pacific).\n\n{% set r = states('input_datetime.pool_pump_hour_one_start') %}**Active Hour 1 starts:** {{ today_at(r).strftime('%-I:%M:%S %p') if r not in ['unknown', 'unavailable', ''] else 'Not set' }}.\n\nSelecting an hour keeps that new timing. Reset restores the default for the current time; it keeps the selected schedule, Pause and Override.",
+      "grid_options": {
+        "columns": 12
+      }
+    }
+  ]
+}

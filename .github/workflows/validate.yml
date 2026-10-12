@@ -20,6 +20,11 @@ jobs:
       - name: Test schedules, physical button logic, and autonomous controller
         run: tests/run_host_tests.sh
 
+      - name: Test native HA controls and reversible dashboard migration
+        run: |
+          node --check tools/ha_api.mjs
+          node --test tests/test_home_assistant.mjs
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
