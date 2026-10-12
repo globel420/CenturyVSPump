@@ -1,13 +1,13 @@
 # Agent Progress
 
 ## Current Resume Point
-- Last updated: 2026-10-12 14:16
+- Last updated: 2026-10-12 14:20
 - Active goal: Implement manual-equivalent controls on the M5Stack front button, standalone schedules and power recovery, plus optional HA hour selection and timing reset
-- Current status: Firmware d2c66e1 installed and both HA dashboard migrations complete. Real Hour 15 selection and default reset passed; B1 and approximately 1550 RPM preserved. Publishing the HA source and evidence.
+- Current status: Software implementation deployed and published. Firmware d2c66e1 is installed; HA source is a75c054. Both dashboards, real hour selection/default reset and periodic synchronization are verified. GitHub CI passed both ESPHome versions. Physical verification is awaiting the user.
 - Files touched: home_assistant/controls.json, home_assistant/dashboard_update.mjs, tools/ha_api.mjs, tests/test_home_assistant.mjs, CI, README, docs/HOME_ASSISTANT.md, CHANGELOG, AGENT_PROGRESS.md
 - Commands run: tests/run_host_tests.sh PASS; node --test tests/test_home_assistant.mjs PASS; node --check tools/ha_api.mjs PASS; git diff --check PASS; native HA edits with API readbacks and semantic comparisons
 - Validation state: Device metadata confirms 0.2.0-rc1 / ESPHome 2026.9.1. Automatic warm-start Hour 1/priming observed. Actual hour and phase follow HA selection/default reset; timing automation enabled and periodic triggers observed. Both dashboard readbacks exactly match reviewed payloads; no retired timing references in any available dashboard. Cold-power and physical button operation remain unverified.
-- Next action: Push and verify updated GitHub checks; wait for user's readiness/observations for cold power and physical M5 button tests. Do not reinstall the already-running candidate just to repeat a software restart.
+- Next action: Await user's readiness/observations for a supervised cold power cycle and physical M5 button tests. Do not reinstall the running candidate or repeatedly rerun completed audits. With confirmation, observe the normal enclosure supply, no Reset press, and actual button/flow behavior; preserve diagnostics if it fails.
 - Blockers: User presence is required for a true power-cycle, physical button and supervised hydraulic/offline checks. Experimental freeze sensor equivalence remains outside the verified feature set. No hardware test has been claimed complete.
 - Do not repeat: Do not simplify the button mapping; do not hard-code 10:50 PM in firmware; do not publish configured firmware binaries or credentials. macOS credential helper stalled; scoped gh auth git-credential push succeeded. Browser raw-GitHub navigation was blocked; local reviewed candidate was used.
 
@@ -162,3 +162,13 @@
 - Validation: Selecting Hour 15 updated the actual M5 hour and saved a new reference. Reset restored 23:00:00 and current Hour 16. B1, normal running mode and approximately 1550 RPM persisted. Reported phase matched the 11 PM reference within a second at its report time. Periodic sync has triggered. Saved a private screenshot of the finished controls.
 - Next: Publish and verify GitHub checks, then collect user-supervised physical button, cold-power and offline results. The explicit power-test readiness question is awaiting an answer.
 - Blockers: No actual front-button action has been observed; last action still none. Reset reason is still software via esp_restart, not a cold-power observation. Supervised hydraulic and experimental freeze behavior remain unverified.
+
+### 2026-10-12 14:20 - GitHub verified; software handoff ready
+- Goal: Finish publication and hand off only the remaining physical validation.
+- Progress: Pushed a75c054f2d8653318302b920da8fb4c43651f7e6 to vgreen-controller-dev. Updated the existing v0.2.0-rc1 release notes to show installation and HA deployment while retaining prerelease status and the original firmware tag. The HA 2:15 PM periodic-sync trace shows Finished, with the timing script executed successfully.
+- Decisions: No additional flash, Reset command, power cycle or unrelated infrastructure change. Preserve user-owned .DS_Store files. Keep the goal incomplete until the required physical observations exist.
+- Files changed: AGENT_PROGRESS.md; public release notes updated, private configured firmware and recovery snapshots excluded.
+- Commands/results: GitHub run 38309407282 PASS on ESPHome 2026.9.0 and 2026.9.1, including C++ tests, HA tests, full builds, checksums and reference artifacts. Remote branch SHA matched a75c054. Release readback confirms installed status and pending physical tests.
+- Validation: Software and HA work is verified. Hardware readiness question has not been answered; physical-button diagnostic still records no action and observed reset reason remains a software restart. True cold-power behavior is not known.
+- Next: User-supervised cold-power and front-button checks. Do not infer success from code, build, network availability or the prior warm start.
+- Blockers: User presence and safe physical access to the operating pump are needed. This handoff does not claim 100 percent manual/hardware equivalence, cold-power repair or verified freeze protection.

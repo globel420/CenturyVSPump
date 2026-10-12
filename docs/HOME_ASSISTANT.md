@@ -52,7 +52,7 @@ Rollback the firmware and HA timing controls together. A compiled reference imag
 - Device metadata reports 0.2.0-rc1 / ESPHome 2026.9.1. After installation, the M5 automatically started Hour 1 and priming, without a Reset or Run command. Reset reason was `software via esp_restart`: this is not evidence of a successful cold power cycle.
 - Selecting Hour 15 on the pump page changed the real device hour to 15 and saved a new daily reference. The selected B1 profile and approximately 1550 RPM were preserved.
 - Reset to Default Timing restored `23:00:00` and the correct current Hour 16, rather than jumping to Hour 1. Reported schedule-position seconds matched the reference within the diagnostic reporting interval.
-- Background synchronization is enabled and periodic triggers were observed. Reconnect and HA-restart triggers are configured but have not yet been exercised by a controlled outage.
+- Background synchronization is enabled; the 2:15 PM periodic-sync trace finished successfully with the timing script executed. Reconnect and HA-restart triggers are configured but have not yet been exercised by a controlled outage.
 - Pool Pump and Home Operations readbacks exactly matched their reviewed changes. All available dashboard configs were checked for the retired controls and old 10:45/10:50 scheduling guidance; none remained. The two obsolete SMUD pump automations are disabled, not deleted. Energy/billing content and rollback exports were preserved.
 - Physical one/two/three-press, hold/programming, offline operation and enclosure cold-power tests still require observation at the pump. Host tests are not substitutes for these checks.
 
