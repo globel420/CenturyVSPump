@@ -1,15 +1,15 @@
 # Agent Progress
 
 ## Current Resume Point
-- Last updated: 2026-10-12 11:50
+- Last updated: 2026-10-12 12:25
 - Active goal: Implement manual-equivalent controls on the M5Stack front button, standalone schedules and power recovery, plus optional HA hour selection and timing reset
-- Current status: Candidate 0.2.0-rc1 implemented and compiled locally; running pump unchanged; GitHub publication next
+- Current status: Candidate d2c66e1 published as v0.2.0-rc1; both CI builds pass; HA-managed candidate saved, validated, and fully compiled with existing private settings; not uploaded
 - Files touched: Firmware component/transport, reference YAML, tests and host stubs, CI, requirements, example secrets, README, INSTALL, docs, CHANGELOG, AGENT_PROGRESS.md
 - Commands run: tests/run_host_tests.sh; ESPHome 2026.9.1 config and full compile; git diff --check; read-only live YAML export and fingerprint comparison
-- Validation state: PASS: 16 schedule profiles, manual input/LED tests, actual controller with transport double, and ESP32 firmware build (997347-byte reported image; 27.8 percent DRAM). Actual cold-power behavior remains unverified.
-- Next action: Publish reviewed source and verify CI; prepare HA-managed candidate pinned to tested commit; supervised deployment and HA control migration remain
+- Validation state: PASS: host tests, local ESP32 build, CI on 2026.9.0 and 2026.9.1, live HA YAML validation and full private build (997335-byte reported image). Live device still reports 0.1.0 / ESPHome 2026.9.0, connected and running at 1550 RPM. Actual cold-power behavior remains unverified.
+- Next action: Await physical-readiness confirmation, upload the private HA image, verify actual boot/button behavior, then implement HA hour selector/reset migration
 - Blockers: Full physical equivalence, including experimental freeze sensor, is not established; supervised hardware verification remains required
-- Do not repeat: Do not simplify the button mapping; do not hard-code 10:50 PM in firmware; do not publish configured firmware binaries or credentials
+- Do not repeat: Do not simplify the button mapping; do not hard-code 10:50 PM in firmware; do not publish configured firmware binaries or credentials. macOS credential helper stalled; scoped gh auth git-credential push succeeded. Browser raw-GitHub navigation was blocked; local reviewed candidate was used.
 
 ## Chapter Log
 
@@ -132,3 +132,13 @@
 - Validation: Reference OTA SHA256 fc82388d756ae6c9d76e1b468d5390859a7539bb467ceed0f4d7600e9eb6e745. No OTA/USB flash or live pump/HA control change.
 - Next: Push and verify CI; build the HA-managed candidate with private secrets; supervise boot/button tests; then apply the HA hour picker/reset UI and retire obsolete SMUD controls.
 - Blockers: Actual enclosure cold boot, pump response and experimental freeze behavior remain unverified. HA controls are specified but not deployed.
+
+### 2026-10-12 12:25 - GitHub release and private HA image ready
+- Goal: Prepare the exact device candidate for supervised installation and power-restoration testing.
+- Progress: Published d2c66e1d13b694c52d5a09414d42381920304ea1 and prerelease v0.2.0-rc1. CI run 38294500074 passed both ESPHome versions and retained reference-only binaries/checksums. Saved the fingerprint-verified HA-managed candidate pinned to that commit, preserving device identity and all secret references.
+- Decisions: Compile/download-only path used in ESPHome Builder. No upload, restart, power cycle or motor command was issued. The user's physical-readiness response is pending; do not infer approval from elapsed time.
+- Files changed: HA-managed vgreen-pump.yaml source; private source backup/candidate under .cache/; AGENT_PROGRESS.md
+- Commands/results: Live HA Validate reported Configuration is valid; full private compile reported Successfully compiled program, config hash 0xf474cd77, 997335-byte image, DRAM 50312 bytes. Source remains pinned to firmware commit d2c66e1 even if later documentation commits change branch HEAD.
+- Validation: Device-page readback still reports installed 0.1.0 on ESPHome 2026.9.0, schedule running, connected, actual/target 1550 RPM. Candidate is built, not installed or physically verified.
+- Next: Use the prepared private image for supervised installation; observe cold power with no Reset press, all front-button sequences, profile retention, then finish HA controls described in docs/HOME_ASSISTANT.md.
+- Blockers: Awaiting readiness confirmation for the live pump test. Experimental freeze behavior remains unverified. HA dropdown/default-reset UI and removal of obsolete SMUD controls are still outstanding.
