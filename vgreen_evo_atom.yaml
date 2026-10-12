@@ -9,15 +9,24 @@ esphome:
   comment: Offline stock-style controller for VGreen EVO EVC165
   project:
     name: globel420.vgreen_evo_offline
-    version: 0.1.0
+    version: 0.2.0-rc1
   on_boot:
-    priority: -100
+    priority: -200
     then:
       - lambda: |-
           id(evo_controller).set_schedule_set(id(saved_schedule_set_b) ? 1 : 0);
           id(evo_controller).set_schedule_profile(id(saved_schedule_profile));
           id(evo_controller).set_freeze_enabled(id(saved_freeze_enabled));
-          id(evo_controller).set_paused(id(saved_maintenance_pause));
+          // Power restoration always starts the selected schedule at Hour 1.
+          id(evo_controller).set_paused(false);
+          id(evo_controller).restart_schedule();
+          id(evo_controller).set_profile_save_callback([](uint8_t profile) {
+            id(saved_schedule_profile) = profile;
+            id(schedule_profile).publish_state(std::to_string(profile));
+          });
+
+preferences:
+  flash_write_interval: 1s
 
 esp32:
   board: m5stack-atom
@@ -26,6 +35,9 @@ esp32:
 
 logger:
   level: INFO
+
+debug:
+  update_interval: 60s
 
 wifi:
   ssid: !secret wifi_ssid
@@ -42,6 +54,13 @@ api:
   reboot_timeout: 0s
   encryption:
     key: !secret api_encryption_key
+  actions:
+    - action: set_schedule_phase
+      variables:
+        seconds: int
+      then:
+        - lambda: |-
+            id(evo_controller).set_schedule_phase(seconds);
 
 ota:
   - platform: esphome
@@ -106,11 +125,9 @@ switch:
       return id(evo_controller).is_paused();
     turn_on_action:
       - lambda: |-
-          id(saved_maintenance_pause) = true;
           id(evo_controller).set_paused(true);
     turn_off_action:
       - lambda: |-
-          id(saved_maintenance_pause) = false;
           id(evo_controller).resume_schedule();
 
   - platform: template
@@ -175,9 +192,21 @@ sensor:
     name: Schedule Hour
     unit_of_measurement: h
     accuracy_decimals: 0
-    update_interval: 10s
+    update_interval: 1s
     lambda: |-
       return id(evo_controller).get_schedule_hour();
+
+  - platform: template
+    name: Schedule Position Seconds
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    update_interval: 10s
+    lambda: |-
+      return id(evo_controller).get_schedule_elapsed_seconds();
+
+  - platform: uptime
+    name: Controller Uptime
+    entity_category: diagnostic
 
   - platform: wifi_signal
     name: Wi-Fi Signal
@@ -203,42 +232,12 @@ binary_sensor:
     lambda: |-
       return id(evo_controller).is_motor_fault_active();
 
-  - platform: gpio
+  - platform: template
     id: atom_button
-    internal: true
-    pin:
-      number: GPIO39
-      inverted: true
-    on_multi_click:
-      - timing:
-          - ON for at least 3s
-        then:
-          - lambda: |-
-              id(saved_maintenance_pause) = false;
-              id(evo_controller).resume_schedule();
-      - timing:
-          - ON for 50ms to 350ms
-          - OFF for 50ms to 350ms
-          - ON for 50ms to 350ms
-          - OFF for 50ms to 350ms
-          - ON for 50ms to 350ms
-          - OFF for at least 500ms
-        then:
-          - script.execute: report_schedule
-      - timing:
-          - ON for 50ms to 350ms
-          - OFF for 50ms to 350ms
-          - ON for 50ms to 350ms
-          - OFF for at least 500ms
-        then:
-          - lambda: |-
-              id(evo_controller).pause();
-      - timing:
-          - ON for 50ms to 350ms
-          - OFF for at least 500ms
-        then:
-          - lambda: |-
-              id(evo_controller).start_override();
+    name: Controller Button
+    entity_category: diagnostic
+    lambda: |-
+      return id(evo_controller).is_button_pressed();
 
 vgreen_evo_controller:
   id: evo_controller
@@ -246,6 +245,9 @@ vgreen_evo_controller:
   run_switch_id: pump_run
   demand_number_id: pump_demand
   ambient_temperature_id: pump_ambient
+  button_pin:
+    number: GPIO39
+    inverted: true
 
 select:
   - platform: template
@@ -255,14 +257,13 @@ select:
     options:
       - A
       - B
-    optimistic: true
-    restore_value: true
-    initial_option: A
+    lambda: |-
+      return id(evo_controller).get_schedule_set() == vgreen_evo::stock::ScheduleSet::B ? "B" : "A";
+    update_interval: 1s
     set_action:
       - lambda: |-
           id(saved_schedule_set_b) = (x == "B");
           id(evo_controller).set_schedule_set(x == "B" ? 1 : 0);
-          id(evo_controller).restart_schedule();
 
   - platform: template
     id: schedule_profile
@@ -277,15 +278,14 @@ select:
       - "6"
       - "7"
       - "8"
-    optimistic: true
-    restore_value: true
-    initial_option: "1"
+    lambda: |-
+      return std::to_string(id(evo_controller).get_schedule_profile());
+    update_interval: 1s
     set_action:
       - lambda: |-
           const uint8_t profile = static_cast<uint8_t>(atoi(x.c_str()));
           id(saved_schedule_profile) = profile;
           id(evo_controller).set_schedule_profile(profile);
-          id(evo_controller).restart_schedule();
 
 button:
   - platform: template
@@ -300,7 +300,6 @@ button:
     icon: mdi:play-circle
     on_press:
       - lambda: |-
-          id(saved_maintenance_pause) = false;
           id(evo_controller).resume_schedule();
 
   - platform: template
@@ -311,6 +310,18 @@ button:
           id(evo_controller).restart_schedule();
 
 text_sensor:
+  - platform: debug
+    reset_reason:
+      name: Controller Reset Reason
+      entity_category: diagnostic
+
+  - platform: template
+    name: Last Controller Button Action
+    entity_category: diagnostic
+    update_interval: 250ms
+    lambda: |-
+      return id(evo_controller).get_last_button_action();
+
   - platform: template
     name: Controller Mode
     update_interval: 1s
@@ -329,51 +340,19 @@ light:
     default_transition_length: 0s
     restore_mode: ALWAYS_OFF
 
-script:
-  - id: report_schedule
-    mode: restart
-    then:
-      - repeat:
-          count: !lambda |-
-            return id(evo_controller).get_schedule_profile();
-          then:
-            - light.turn_on:
-                id: atom_led
-                red: 1.0
-                green: 1.0
-                blue: 1.0
-                brightness: 30%
-            - delay: 250ms
-            - light.turn_off: atom_led
-            - delay: 250ms
-
 interval:
-  - interval: 1s
+  - interval: 25ms
     then:
-      - if:
-          condition:
-            not:
-              script.is_running: report_schedule
-          then:
-            - lambda: |-
-                auto call = id(atom_led).turn_on();
-                call.set_brightness(0.20f);
-                if (id(evo_controller).is_paused()) {
-                  call.set_rgb(1.0f, 0.0f, 0.0f);
-                } else if (!id(evo_controller).is_communication_healthy()) {
-                  call.set_rgb(1.0f, 0.35f, 0.0f);
-                } else if (id(evo_controller).is_motor_fault_active()) {
-                  call.set_rgb(1.0f, 0.0f, 0.0f);
-                } else if (id(evo_controller).is_freeze_active()) {
-                  call.set_rgb(0.0f, 0.4f, 1.0f);
-                } else if (id(evo_controller).is_override_active()) {
-                  call.set_rgb(0.65f, 0.0f, 1.0f);
-                } else if (id(evo_controller).get_target_rpm() > 0) {
-                  call.set_rgb(0.0f, 1.0f, 0.0f);
-                } else {
-                  call.set_rgb(0.0f, 0.0f, 0.25f);
-                }
-                call.perform();
+      - lambda: |-
+          const uint32_t rgb = id(evo_controller).get_indicator_rgb();
+          static uint32_t previous = UINT32_MAX;
+          if (rgb == previous) return;
+          previous = rgb;
+          auto call = rgb == 0 ? id(atom_led).turn_off() : id(atom_led).turn_on();
+          call.set_brightness(0.20f);
+          call.set_rgb(((rgb >> 16) & 255) / 255.0f,
+                       ((rgb >> 8) & 255) / 255.0f, (rgb & 255) / 255.0f);
+          call.perform();
 
 globals:
   - id: saved_schedule_set_b
@@ -390,8 +369,3 @@ globals:
     type: bool
     restore_value: true
     initial_value: "false"
-
-  - id: saved_maintenance_pause
-    type: bool
-    restore_value: true
-    initial_value: "true"

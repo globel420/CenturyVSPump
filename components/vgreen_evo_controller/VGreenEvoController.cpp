@@ -17,6 +17,12 @@ namespace esphome
             const uint32_t now = millis();
             this->last_clock_ms_ = now;
             this->last_decision_ms_ = now;
+            if (this->button_pin_ != nullptr)
+            {
+                this->button_pin_->setup();
+                this->manual_button_.update(this->button_pin_->digital_read(), now, false, false,
+                                            this->schedule_profile_);
+            }
 
             if (this->ambient_temperature_ != nullptr)
             {
@@ -36,10 +42,22 @@ namespace esphome
         {
             const uint32_t now = millis();
             this->advance_schedule_clock_(now);
+            this->handle_button_(now);
 
             if ((uint32_t) (now - this->last_decision_ms_) < DECISION_INTERVAL_MS)
                 return;
             this->last_decision_ms_ = now;
+
+            // Programming is performed entirely on the M5, with the motor stopped
+            // as shown on page 14 of the EVO manual. The schedule clock keeps moving.
+            if (this->manual_button_.is_programming())
+            {
+                this->communication_ready_ = false;
+                this->cancel_prime_();
+                this->set_mode_(OperatingMode::SCHEDULE_SET);
+                this->request_stop_(now, this->force_target_update_);
+                return;
+            }
 
             // Maintenance pause has absolute priority and suppresses every automatic
             // start, including freeze protection.
@@ -71,6 +89,14 @@ namespace esphome
             this->ever_communicated_ = true;
             if (this->pump_ != nullptr && this->pump_->motor_fault_active())
                 this->motor_fault_latched_ = true;
+            else if (this->motor_fault_latched_ && this->pump_ != nullptr &&
+                     this->pump_->has_recent_no_fault_status(COMMUNICATION_STALE_MS))
+            {
+                // The motor owns fault clearing (manual section 8). A fault that
+                // it has cleared must not need an extra M5 reset to run again.
+                this->motor_fault_latched_ = false;
+                ESP_LOGI(TAG, "Motor reports a healthy status again; resynchronizing");
+            }
 
             if (this->motor_fault_latched_)
             {
@@ -160,6 +186,11 @@ namespace esphome
                 this->force_target_update_ = true;
                 ESP_LOGI(TAG, "Priming complete; applying scheduled speed");
             }
+
+            // A phase correction into a scheduled-off period must stop immediately,
+            // including when it arrives during a startup prime.
+            if (scheduled.rpm == 0)
+                this->cancel_prime_();
 
             // Prime only when a priming-enabled schedule is about to transition the
             // controller from a stopped command to a running command.  Higher-priority
@@ -251,7 +282,7 @@ namespace esphome
             if (this->schedule_profile_ == profile)
                 return;
             this->schedule_profile_ = profile;
-            this->restart_schedule_phase_(millis());
+            this->force_target_update_ = true;
         }
 
         void VGreenEvoController::set_freeze_enabled(bool enabled)
@@ -350,6 +381,85 @@ namespace esphome
             ESP_LOGI(TAG, "Schedule phase reset to hour one");
         }
 
+        bool VGreenEvoController::set_schedule_phase(int seconds)
+        {
+            if (seconds < 0 || seconds >= static_cast<int>(stock::kSecondsPerDay))
+            {
+                ESP_LOGW(TAG, "Ignoring invalid schedule phase %d", seconds);
+                return false;
+            }
+            this->advance_schedule_clock_(millis());
+            this->schedule_elapsed_ms_ = static_cast<uint64_t>(seconds) * 1000ULL;
+            // Re-evaluate normally: no resume, fault clearing, or priming restart.
+            this->force_target_update_ = true;
+            ESP_LOGI(TAG, "Schedule aligned to hour %u, minute %u", (unsigned) this->get_schedule_hour(),
+                     (unsigned) ((seconds / 60) % 60));
+            return true;
+        }
+
+        void VGreenEvoController::handle_button_(uint32_t now)
+        {
+            if (this->button_pin_ == nullptr)
+                return;
+            using ::vgreen_evo::manual::Action;
+            const Action action = this->manual_button_.update(
+                this->button_pin_->digital_read(), now, this->paused_, this->is_override_active(),
+                this->schedule_profile_);
+            switch (action)
+            {
+                case Action::NONE: return;
+                case Action::OVERRIDE:
+                    this->last_button_action_ = "single press: override";
+                    this->start_override();
+                    break;
+                case Action::PAUSE:
+                    this->last_button_action_ = "double press: pause";
+                    this->pause();
+                    break;
+                case Action::RESUME:
+                    this->last_button_action_ = "hold and release: resume";
+                    this->resume_schedule();
+                    break;
+                case Action::CHECK:
+                    this->last_button_action_ = "triple press: schedule check";
+                    break;
+                case Action::ENTER_SET:
+                    this->last_button_action_ = "hold and release: schedule set";
+                    this->force_target_update_ = true;
+                    break;
+                case Action::SAVE_PROFILE:
+                    this->last_button_action_ = "saved profile " + std::to_string(this->manual_button_.selected_profile());
+                    this->set_schedule_profile(this->manual_button_.selected_profile());
+                    if (this->profile_save_callback_)
+                        this->profile_save_callback_(this->schedule_profile_);
+                    this->force_target_update_ = true;
+                    break;
+                case Action::CANCEL_SET:
+                    this->last_button_action_ = "schedule set timed out: unchanged";
+                    this->force_target_update_ = true;
+                    break;
+                case Action::INVALID:
+                    this->last_button_action_ = "invalid press count: unchanged";
+                    break;
+            }
+            ESP_LOGI(TAG, "M5 button: %s", this->last_button_action_.c_str());
+        }
+
+        uint32_t VGreenEvoController::get_indicator_rgb() const
+        {
+            if (!this->manual_button_.led_on(millis(), this->paused_, this->is_override_active()))
+                return 0;
+            // Retain diagnostic colors without hiding the manual's blink timing.
+            if (this->is_motor_fault_active()) return 0xFF0000;
+            if (!this->is_communication_healthy()) return 0xFF5900;
+            return 0x00FF00;
+        }
+
+        uint32_t VGreenEvoController::get_schedule_elapsed_seconds() const
+        {
+            return static_cast<uint32_t>((this->schedule_elapsed_ms_ / 1000ULL) % stock::kSecondsPerDay);
+        }
+
         std::string VGreenEvoController::get_mode_name() const
         {
             switch (this->mode_)
@@ -376,6 +486,8 @@ namespace esphome
                     return "schedule running";
                 case OperatingMode::SCHEDULE_STOPPED:
                     return "schedule stopped";
+                case OperatingMode::SCHEDULE_SET:
+                    return "schedule set";
             }
             return "unknown";
         }

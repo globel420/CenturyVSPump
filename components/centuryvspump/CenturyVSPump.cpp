@@ -659,7 +659,9 @@ namespace esphome
                 ESP_LOGW(TAG, "Unknown pump status %02X; invalidating no-fault authorization", status);
                 this->status_seen_ = false;
                 this->last_status_timestamp_ = millis();
-                this->motor_fault_active_ = true;
+                // Unknown is not a reported motor fault. The status gate prevents
+                // Run until a recognized no-fault reply arrives; do not create a
+                // permanent fault latch from a transient startup response.
                 this->invalidate_pending_motion_request_();
                 this->purge_pending_motion_commands_();
             }

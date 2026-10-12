@@ -5,11 +5,15 @@
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/switch/switch.h"
 #include "esphome/core/component.h"
+#include "esphome/core/hal.h"
 
+#include "manual_button.h"
 #include "stock_schedule.h"
 
 #include <cstdint>
+#include <functional>
 #include <string>
+#include <utility>
 
 namespace esphome
 {
@@ -30,6 +34,7 @@ namespace esphome
             PRIMING,
             SCHEDULE_RUNNING,
             SCHEDULE_STOPPED,
+            SCHEDULE_SET,
         };
 
         /**
@@ -60,6 +65,9 @@ namespace esphome
             void set_pump(century_vs_pump::CenturyVSPump *pump) { this->pump_ = pump; }
             void set_run_switch(switch_::Switch *run_switch) { this->run_switch_ = run_switch; }
             void set_demand_number(number::Number *demand_number) { this->demand_number_ = demand_number; }
+            void set_button_pin(GPIOPin *pin) { this->button_pin_ = pin; }
+            void set_profile_save_callback(std::function<void(uint8_t)> callback)
+            { this->profile_save_callback_ = std::move(callback); }
             void set_ambient_temperature_sensor(sensor::Sensor *ambient_temperature)
             {
                 this->ambient_temperature_ = ambient_temperature;
@@ -78,6 +86,7 @@ namespace esphome
             void pause() { this->set_paused(true); }
             void resume_schedule();
             void restart_schedule();
+            bool set_schedule_phase(int seconds);
 
             // Read-only state for template sensors, text sensors, and diagnostics.
             std::string get_mode_name() const;
@@ -94,6 +103,11 @@ namespace esphome
             bool is_communication_healthy() const;
             bool is_motor_fault_active() const;
             float get_ambient_temperature_f() const;
+            bool is_button_pressed() const { return this->manual_button_.is_pressed(); }
+            bool is_selecting_schedule() const { return this->manual_button_.is_programming(); }
+            const std::string &get_last_button_action() const { return this->last_button_action_; }
+            uint32_t get_indicator_rgb() const;
+            uint32_t get_schedule_elapsed_seconds() const;
 
         protected:
             static constexpr uint32_t DECISION_INTERVAL_MS = 250;
@@ -121,11 +135,16 @@ namespace esphome
             void cancel_prime_();
             void restart_schedule_phase_(uint32_t now);
             bool deadline_reached_(uint32_t now, uint32_t deadline) const;
+            void handle_button_(uint32_t now);
 
             century_vs_pump::CenturyVSPump *pump_{nullptr};
             switch_::Switch *run_switch_{nullptr};
             number::Number *demand_number_{nullptr};
             sensor::Sensor *ambient_temperature_{nullptr};
+            GPIOPin *button_pin_{nullptr};
+            ::vgreen_evo::manual::Button manual_button_;
+            std::function<void(uint8_t)> profile_save_callback_;
+            std::string last_button_action_{"none"};
 
             stock::ScheduleSet schedule_set_{stock::ScheduleSet::A};
             uint8_t schedule_profile_{1};

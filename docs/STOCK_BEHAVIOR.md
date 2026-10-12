@@ -1,6 +1,6 @@
 # VGreen EVO stock behavior reference
 
-The offline controller uses a 24-hour clock that begins at hour one whenever the ATOM starts. This intentionally does not use Home Assistant, Internet time, or an RTC. The EVO guide says the motor itself returns to hour one after a power interruption.
+The controller uses a local 24-hour clock that begins at Hour 1 whenever the ATOM starts. It does not require Home Assistant, Internet time, or an RTC. An optional HA action can align its phase after reconnection. Without that connection, it continues locally. Displayed Hour 1 is elapsed 0–1 h and Hour 24 is elapsed 23–24 h; the tables below use elapsed-hour boundaries.
 
 ## Schedule Set A
 
@@ -31,17 +31,17 @@ The offline controller uses a 24-hour clock that begins at hour one whenever the
 ## Other emulated behavior
 
 - Priming: 3450 RPM for three minutes for profiles marked Yes.
-- Single press: 3450 RPM override for up to 24 hours.
-- Double press: stop indefinitely while the 24-hour schedule continues advancing.
-- Long hold: leave pause/override and return to the current schedule position.
-- Triple press: report the selected profile with LED blinks.
+- From Operating Mode: one press requests a 3450 RPM override for up to 24 hours; two presses pause while the schedule advances; three presses report the profile with LED blinks.
+- Hold at least three seconds and release: leave Pause/Override, or enter Schedule Set Mode from Operating Mode.
+- Schedule Set Mode stops the motor. Count 1–8 presses, hold three seconds and release to save the profile locally. Inactivity for 45 seconds abandons the selection. The existing cycle position is preserved when choosing a profile.
+- LED: normal steady on; Override 2500 ms on/125 ms off; Pause 125 ms on/2500 ms off; Schedule Set 250 ms on/off; Schedule Check three seconds on, profile-count half-second flashes, three seconds off, then normal operation.
 - Freeze request: below 39°F, request 1725 RPM for one hour, then recheck hourly. If a previously valid cold sensor becomes stale during an active window, continue in one-hour windows until a fresh reading is above 39°F or protection is explicitly suspended.
-- Power recovery: restart the selected profile at hour one.
+- Power recovery: clear temporary modes and automatically restart the saved profile at Hour 1 after the motor is ready. No HA connection or side-Reset press is required.
 
-Maintenance pause has higher priority than freeze logic so the motor cannot unexpectedly start while someone is servicing it. That also means freeze protection is deliberately suspended during maintenance pause. Pause stops motor commands but does not freeze or reset the current 24-hour schedule position.
+Pause has priority over freeze logic during the current boot. It stops motor commands but does not freeze the schedule clock. A power cycle clears Pause; use the electrical disconnect/lockout for maintenance. The experimental freeze policy has not been established as equivalent to the native motor's protection and remains opt-in.
 
 ## Source and uncertainty
 
-Source: [VGreen EVO installation and user guide](https://electricmotorwarehouse.com/content/PDF/EVO%20Install%20Manual.pdf), schedule and operation pages 10–13.
+Source: [VGreen EVO installation and user guide](https://electricmotorwarehouse.com/content/PDF/EVO%20Install%20Manual.pdf), button operation pages 7–9 and 14, schedules 10–13, power recovery 24.
 
 The Gen3 protocol describes an estimated ambient-temperature sensor at page `0x00`, address `0x07`, scale 128. The controller treats it as an experimental Fahrenheit input with plausibility and freshness checks. Its units and behavior on the exact EVC165 must be verified against a trusted thermometer before relying on local freeze protection.

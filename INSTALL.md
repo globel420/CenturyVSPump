@@ -55,7 +55,7 @@ Keep the ATOM disconnected from the pump's RS485 connector and 12-volt supply wh
 .venv/bin/esphome run vgreen_evo_atom.yaml
 ```
 
-Select the USB serial device when prompted. The firmware boots in a safe stop/bus-sync state; compiling or flashing does not prove physical compatibility.
+Select the USB serial device when prompted. The firmware synchronizes with the motor and automatically starts the saved profile at Hour 1; there is no persistent startup Pause. Compiling or flashing does not prove physical compatibility. Never install the public CI example image on the real controller; build the HA-managed device YAML using its existing private settings.
 
 ## 5. Physical verification gate
 
@@ -72,12 +72,12 @@ The EVO guide uses both switches 3 and 4 ON to select Schedule Set D. That chang
 ## 6. First live test
 
 - Keep the pump filled and hydraulically primed.
-- The first flash starts with the controller's saved maintenance pause enabled. Leave it enabled until the stopped-state checks pass.
-- Confirm serial communication and plausible stopped RPM/status first.
+- Expect automatic start after communication is established. Be present with the hydraulic system ready.
+- Observe boot, serial communication, priming where applicable, and actual RPM. Do not press Reset to make a failed cold start appear successful.
 - Verify the experimental ambient-temperature value against a trusted thermometer before enabling local freeze behavior.
 - Test one short, supervised run and confirm water flow, commanded RPM, actual RPM, stop behavior, and communication-fault handling.
 - Test with Home Assistant and the router turned off for at least 30 minutes.
 
 Do not leave the controller unattended until all of those checks pass. A software STOP is not an electrical lockout.
 
-After those checks pass, turn off **Maintenance Pause** from the authenticated local web page or Home Assistant. That choice is saved. Future power cycles begin the selected stock schedule at hour one without needing either service.
+Test the M5 front-button sequences with Home Assistant unavailable. Verify that a button-selected profile is restored after power is reapplied and that the pump starts at Hour 1 without Reset. Observe the manual's minimum 60-second power-off interval for power-cycle tests. If the M5 has no LED or network presence before Reset, investigate its power/boot path; software unit tests do not establish that the enclosure power supply boots it reliably.

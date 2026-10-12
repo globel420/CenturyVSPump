@@ -1,15 +1,15 @@
 # Agent Progress
 
 ## Current Resume Point
-- Last updated: 2026-08-28 20:33
-- Active goal: Publish autonomous M5Stack firmware that mimics VGreen EVO stock behavior while Home Assistant remains optional
-- Current status: Firmware and documentation complete; final validation passed; ready to commit and push vgreen-controller-dev
-- Files touched: .gitignore, README.md, INSTALL.md, docs/STOCK_BEHAVIOR.md, components/centuryvspump/, components/vgreen_evo_controller/, tests/, vgreen_evo_atom.yaml, secrets.example.yaml, requirements-dev.txt, .github/workflows/validate.yml
-- Commands run: tests/run_host_tests.sh; .venv/bin/esphome config vgreen_evo_atom.yaml; .venv/bin/esphome compile vgreen_evo_atom.yaml; git diff --check; redacted secret-signature scan
-- Validation state: PASS: all 16 schedule profiles and boundaries; ESPHome 2026.8.1 config and full firmware compile; no compiler warnings; 1,022,927-byte image, 55.7 percent app flash, 28.1 percent DRAM; no secret signatures in commit candidates.
-- Next action: Stage reviewed source files, commit Add autonomous VGreen EVO controller, push origin vgreen-controller-dev, verify remote commit, then hand off INSTALL.md to the other computer.
-- Blockers: Physical EVC165 label, switch bank, RS485 polarity, ambient-register units, dry-run protection, and real motor behavior still require photos and supervised hardware validation.
-- Do not repeat: Do not claim physical pump validation from compilation. Do not change DIP switches or wiring without exact labeled photos and breaker lockout. Do not commit secrets.yaml, build output, or temporary research files.
+- Last updated: 2026-10-12 11:50
+- Active goal: Implement manual-equivalent controls on the M5Stack front button, standalone schedules and power recovery, plus optional HA hour selection and timing reset
+- Current status: Candidate 0.2.0-rc1 implemented and compiled locally; running pump unchanged; GitHub publication next
+- Files touched: Firmware component/transport, reference YAML, tests and host stubs, CI, requirements, example secrets, README, INSTALL, docs, CHANGELOG, AGENT_PROGRESS.md
+- Commands run: tests/run_host_tests.sh; ESPHome 2026.9.1 config and full compile; git diff --check; read-only live YAML export and fingerprint comparison
+- Validation state: PASS: 16 schedule profiles, manual input/LED tests, actual controller with transport double, and ESP32 firmware build (997347-byte reported image; 27.8 percent DRAM). Actual cold-power behavior remains unverified.
+- Next action: Publish reviewed source and verify CI; prepare HA-managed candidate pinned to tested commit; supervised deployment and HA control migration remain
+- Blockers: Full physical equivalence, including experimental freeze sensor, is not established; supervised hardware verification remains required
+- Do not repeat: Do not simplify the button mapping; do not hard-code 10:50 PM in firmware; do not publish configured firmware binaries or credentials
 
 ## Chapter Log
 
@@ -52,3 +52,83 @@
 - Validation: PASS: all 16 schedule profiles and boundaries; ESPHome 2026.8.1 config and full firmware compile; no compiler warnings; 1,022,927-byte image, 55.7 percent app flash, 28.1 percent DRAM; no secret signatures in commit candidates.
 - Next: Stage reviewed source files, commit Add autonomous VGreen EVO controller, push origin vgreen-controller-dev, verify remote commit, then hand off INSTALL.md to the other computer.
 - Blockers: Physical EVC165 label, switch bank, RS485 polarity, ambient-register units, dry-run protection, and real motor behavior still require photos and supervised hardware validation.
+
+### 2026-10-12 10:29 - recover current firmware and button behavior
+- Goal: Identify the exact newest VGreen EVO firmware and prepare a reliable physical-button repair
+- Progress: Verified current source and newest local compiled image are ESPHome firmware 0.1.0 on vgreen-controller-dev commit a504b56; GitHub matches local; current button uses long, triple, double, and single-click actions; boot performs safe Stop and restores maintenance pause, default true
+- Decisions: none recorded
+- Files changed: AGENT_PROGRESS.md
+- Commands/results: Spotlight and scoped file search; Git branch/commit comparison; GitHub repo/branch/actions inspection; SHA-256 and binary string fingerprints; source line inspection
+- Validation: PASS: local HEAD equals GitHub vgreen-controller-dev a504b56; GitHub CI succeeded; newest local image is d55ad1e7...; no releases or GitHub artifacts; physical installed image and live button behavior not yet verified
+- Next: Confirm desired one-button behavior, then simplify the YAML button logic and add host-level behavior tests before compiling
+- Blockers: Need user choice for button action semantics; actual installed image and pump-side behavior require live device validation
+
+### 2026-10-12 10:30 - identify likely cold-start gate
+- Goal: Repair cold-power startup and simplify reliable physical-button control on the current autonomous firmware
+- Progress: Confirmed user-provided GitHub branch is local HEAD a504b56. Reviewed startup and transport state machines: autonomous Run is gated on healthy RS485, recent recognized no-fault status, confirmed Stop, and settle time; early pump-unready timing is a plausible explanation for reset-after-power symptom but is not yet live-proven.
+- Decisions: none recorded
+- Files changed: AGENT_PROGRESS.md
+- Commands/results: GitHub API/CLI branch verification; source review of VGreenEvoController and CenturyVSPump transport state machines
+- Validation: PASS: source/remote identity verified. NOT YET VERIFIED: exact image currently flashed, cold-boot serial evidence, button input events, actual pump response.
+- Next: Confirm simplified button contract, implement it, add tests; then capture supervised cold-power serial logs before changing startup retries.
+- Blockers: Need desired button action semantics; live cold-boot diagnosis requires access to serial/logging without unsafe simultaneous USB and pump power.
+
+### 2026-10-12 10:32 - inspect live Home Assistant pump page
+- Goal: Repair cold-power startup and simplify reliable physical-button control using the authoritative Home Assistant firmware configuration
+- Progress: Verified device is online and running firmware 0.1.0 built with ESPHome 2026.9.0. Authoritative config is vgreen-pump.yaml and pulls globel420/CenturyVSPump ref vgreen-controller-dev. Current live state: communication connected, no motor fault, schedule B1 running at target/actual 1550 RPM, maintenance pause off, max-RPM override off. Physical ATOM button is internal and has no HA entity/history. Device Builder offers 2026.9.1 update but it was not applied.
+- Decisions: none recorded
+- Files changed: AGENT_PROGRESS.md
+- Commands/results: Read-only Home Assistant Pool Pump dashboard, Advanced tab, device page, and ESPHome Builder configuration inspection
+- Validation: PASS: live device metadata, entity states, YAML filename, Git source ref, board, UART pins, pump address, and online status visibly confirmed. NOT VERIFIED: raw button press events and cold-power startup log.
+- Next: Choose the simplified physical-button behavior, then update a safe working copy of vgreen-pump.yaml and component tests before any compile or flash
+- Blockers: Home Assistant cannot observe the internal GPIO button directly; raw button verification requires temporary diagnostics/logging or a controlled physical test.
+
+### 2026-10-12 10:43 - plan manual behavior and HA clock sync
+- Goal: Plan a VGreen EVO firmware release that matches owner-manual button and power-recovery behavior, resynchronizes schedule phase from Home Assistant time, and stays published on GitHub
+- Progress: Manual verified: power restore starts hour one; one press starts 3450 RPM override up to 24h; two presses enter indefinite Pause while schedule advances; three presses report profile; 3s hold exits Pause/Override, and from normal operation enters Schedule Set Mode. ESPHome homeassistant time plus on_time_sync can correct device phase when API reconnects. Live HA currently uses a later schedule anchor than the checked-in dashboard YAML, so anchor must be resolved before implementation.
+- Decisions: none recorded
+- Files changed: AGENT_PROGRESS.md
+- Commands/results: Reviewed VGreen EVO manual sections 4 and 8; reviewed live HA state/config and local SMUD automation; reviewed official ESPHome Home Assistant time/on_time_sync documentation
+- Validation: PASS: manual semantics and supported HA-native time synchronization path confirmed. NOT STARTED: implementation, tests, compile, CI, release, OTA, physical validation.
+- Next: Confirm Hour 1 wall-clock anchor, then implement the approved plan in source and tests; push only after local validation
+- Blockers: Live HA automation indicates 10:50 PM while checked-in dashboard YAML says 10:45 PM; choose one anchor or make it a configurable substitution with 10:50 PM as current live default.
+
+### 2026-10-12 10:43 - treat current button decoder as failed
+- Goal: Plan and deliver a manual-faithful, physically verifiable VGreen EVO button and power-recovery firmware release
+- Progress: Do not preserve current YAML on_multi_click logic. Its 50-350 ms cadence is too narrow for reliable human input and long-hold context is incomplete versus the owner manual. Plan now begins with raw GPIO39 press/release diagnostics and a tested C++ button state machine before pump actions are trusted.
+- Decisions: none recorded
+- Files changed: AGENT_PROGRESS.md
+- Commands/results: No new diagnostic command; recorded user-observed live failure against inspected source timing
+- Validation: USER EVIDENCE: current button behavior fails in physical use. ROOT CAUSE NOT YET PROVEN: GPIO actuation, electrical input, debounce, click timing, and action dispatch must be isolated.
+- Next: Approve plan and 10:50 PM Hour 1 anchor; then implement raw button diagnostics/state machine, host tests, boot recovery, HA time sync, and GitHub release workflow.
+- Blockers: Need Hour 1 anchor confirmation; physical button test requires user present and pump-safe conditions.
+
+### 2026-10-12 10:44 - clarify exact EVO button emulation
+- Goal: Make the M5Stack button emulate the VGreen EVO motor button while separately improving power recovery and HA schedule-phase synchronization
+- Progress: User explicitly wants the M5Stack button to behave like the EVO button, not a simplified stop/resume mapping. Preserve manual context-sensitive behavior: 1 press Override, 2 Pause, 3 Schedule Check, long hold exits Pause/Override or enters Schedule Set from Operating, with 1-8 presses plus long hold to select a schedule.
+- Decisions: none recorded
+- Files changed: AGENT_PROGRESS.md
+- Commands/results: No implementation command; recorded clarified functional contract
+- Validation: Requirement clarified against owner-manual sections 4.1-4.5. Physical button decoder remains unverified.
+- Next: Confirm the HA Hour 1 anchor, then implement and test exact EVO button emulation plus separate boot/time-sync changes.
+- Blockers: Hour 1 anchor remains 10:50 PM live versus 10:45 PM checked-in YAML.
+
+### 2026-10-12 11:34 - implement clarified standalone controls
+- Goal: M5Stack front button replaces the EVO button using the EVO manual as the control reference, including when HA never connects.
+- Progress: Requirements settled: HA hour dropdown 1-24 keeps manually selected timing; Reset to Default Timing restores an 11 PM Pacific reference; remove the SMUD switch and forced-B1 scheduling.
+- Decisions: Firmware owns button interpretation, LED patterns, saved profile, priming and schedules. HA timing correction is optional and must not release Pause or Override. Preserve motor/communication checks. Cold-start root cause remains unknown.
+- Files changed: AGENT_PROGRESS.md
+- Commands/results: Source/manual inspection; no new firmware compiled or flashed
+- Validation: Hardware button, cold-start and freeze behavior remain unverified
+- Next: Implement local behavior and meaningful host tests, then build and publish reviewed source
+- Blockers: No live pump changes until the built candidate is ready for supervised validation
+
+### 2026-10-12 11:50 - local candidate tested and compiled
+- Goal: Deliver standalone manual controls and automatic Hour 1 startup, with optional HA phase correction.
+- Progress: Added GPIO39 decoder, complete local Schedule Set workflow and LED patterns, local saved-profile callback, automatic boot without persisted Pause, reset/uptime/button diagnostics, and phase API. Unknown status no longer creates a motor fault; recognized motor fault clearing allows resynchronization. Corrected phase-to-off during priming.
+- Decisions: Keep freeze experimental. No physical repair claim from host tests. Firmware images built with example credentials are reference artifacts only. Live YAML backup is private under .cache/recovery/ and matches the source copied from the HA editor (9753 characters, fingerprint verified).
+- Files changed: components/, vgreen_evo_atom.yaml, tests/, CI, requirements, documentation and example build credentials
+- Commands/results: All three host test suites PASS; ESPHome 2026.9.1 schema and full compile PASS; git diff --check PASS
+- Validation: Reference OTA SHA256 fc82388d756ae6c9d76e1b468d5390859a7539bb467ceed0f4d7600e9eb6e745. No OTA/USB flash or live pump/HA control change.
+- Next: Push and verify CI; build the HA-managed candidate with private secrets; supervise boot/button tests; then apply the HA hour picker/reset UI and retire obsolete SMUD controls.
+- Blockers: Actual enclosure cold boot, pump response and experimental freeze behavior remain unverified. HA controls are specified but not deployed.

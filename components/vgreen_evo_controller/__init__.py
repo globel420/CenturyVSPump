@@ -1,5 +1,6 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
+from esphome import pins
 from esphome.components import number, sensor, switch
 from esphome.const import CONF_ID
 
@@ -13,6 +14,7 @@ CONF_CENTURYVSPUMP_ID = "centuryvspump_id"
 CONF_RUN_SWITCH_ID = "run_switch_id"
 CONF_DEMAND_NUMBER_ID = "demand_number_id"
 CONF_AMBIENT_TEMPERATURE_ID = "ambient_temperature_id"
+CONF_BUTTON_PIN = "button_pin"
 
 vgreen_evo_ns = cg.esphome_ns.namespace("vgreen_evo_controller")
 VGreenEvoController = vgreen_evo_ns.class_("VGreenEvoController", cg.Component)
@@ -25,6 +27,7 @@ CONFIG_SCHEMA = (
             cv.Required(CONF_RUN_SWITCH_ID): cv.use_id(switch.Switch),
             cv.Required(CONF_DEMAND_NUMBER_ID): cv.use_id(number.Number),
             cv.Optional(CONF_AMBIENT_TEMPERATURE_ID): cv.use_id(sensor.Sensor),
+            cv.Optional(CONF_BUTTON_PIN): pins.gpio_input_pin_schema,
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -42,6 +45,10 @@ async def to_code(config):
     cg.add(var.set_pump(pump))
     cg.add(var.set_run_switch(run_switch))
     cg.add(var.set_demand_number(demand_number))
+
+    if CONF_BUTTON_PIN in config:
+        pin = await cg.gpio_pin_expression(config[CONF_BUTTON_PIN])
+        cg.add(var.set_button_pin(pin))
 
     if CONF_AMBIENT_TEMPERATURE_ID in config:
         ambient_temperature = await cg.get_variable(
