@@ -1,9 +1,9 @@
 # Agent Progress
 
 ## Current Resume Point
-- Last updated: 2026-10-12 14:20
+- Last updated: 2026-10-12 14:22
 - Active goal: Implement manual-equivalent controls on the M5Stack front button, standalone schedules and power recovery, plus optional HA hour selection and timing reset
-- Current status: Software implementation deployed and published. Firmware d2c66e1 is installed; HA source is a75c054. Both dashboards, real hour selection/default reset and periodic synchronization are verified. GitHub CI passed both ESPHome versions. Physical verification is awaiting the user.
+- Current status: BLOCKED on user-supervised physical verification after three consecutive goal turns with the same missing readiness/observations. Software implementation is deployed and published: firmware d2c66e1, HA source a75c054, both dashboards and timing operations verified, GitHub CI passed both versions. Do not continue status-only checks without new user input or external evidence.
 - Files touched: home_assistant/controls.json, home_assistant/dashboard_update.mjs, tools/ha_api.mjs, tests/test_home_assistant.mjs, CI, README, docs/HOME_ASSISTANT.md, CHANGELOG, AGENT_PROGRESS.md
 - Commands run: tests/run_host_tests.sh PASS; node --test tests/test_home_assistant.mjs PASS; node --check tools/ha_api.mjs PASS; git diff --check PASS; native HA edits with API readbacks and semantic comparisons
 - Validation state: Device metadata confirms 0.2.0-rc1 / ESPHome 2026.9.1. Automatic warm-start Hour 1/priming observed. Actual hour and phase follow HA selection/default reset; timing automation enabled and periodic triggers observed. Both dashboard readbacks exactly match reviewed payloads; no retired timing references in any available dashboard. Cold-power and physical button operation remain unverified.
@@ -172,3 +172,23 @@
 - Validation: Software and HA work is verified. Hardware readiness question has not been answered; physical-button diagnostic still records no action and observed reset reason remains a software restart. True cold-power behavior is not known.
 - Next: User-supervised cold-power and front-button checks. Do not infer success from code, build, network availability or the prior warm start.
 - Blockers: User presence and safe physical access to the operating pump are needed. This handoff does not claim 100 percent manual/hardware equivalence, cold-power repair or verified freeze protection.
+
+### 2026-10-12 14:21 - hardware-readiness blocker revalidated
+- Goal: Complete the remaining real power-restoration and M5 button checks without substituting software tests for physical evidence.
+- Progress: The previous goal turn made substantive progress by deploying, publishing and verifying the HA controls and CI. This continuation made no implementation progress: a fresh readback confirms the same unresolved physical-test condition.
+- Decisions: No Reset, flash, motor command or new automation was issued. The readiness request is unanswered. The same blocker has now been present for two consecutive goal turns, including the prior completion handoff; leave the goal active until the required blocked-audit threshold is reached or the user can test.
+- Files changed: AGENT_PROGRESS.md only; this is a checkpoint, not additional implementation work.
+- Commands/results: Read-only device snapshot at 21:21:33 UTC: schedule running, approximately 1550 RPM, software via esp_restart, last physical button action none, uptime approximately 4260 seconds. Worktree remains otherwise unchanged apart from pre-existing user .DS_Store files.
+- Validation: No evidence of a cold power cycle or physical button action. All previously completed software checks remain completed; no background build or test process is still running.
+- Next: User-supervised power and physical-button observations. If the same condition is confirmed in the next goal turn with no safe work available, mark the goal blocked instead of continuing repeated status-only turns.
+- Blockers: User presence/readiness at the pump and direct observation of startup, buttons and safe water flow.
+
+### 2026-10-12 14:22 - blocked audit satisfied
+- Goal: Preserve the complete implementation scope, including real cold-power and physical-button verification.
+- Progress: The previous goal turn was no progress, not a verified wait. This read-only continuation reconfirmed the same blocker; no live process is pending and no further safe software action supplies the missing hardware evidence.
+- Decisions: The physical-readiness blocker has repeated for three consecutive goal turns. Mark the goal blocked, not complete. Stop automatic status-only checks until the user supplies readiness or observations. No pump control or restart was issued.
+- Files changed: AGENT_PROGRESS.md only; publish this handoff without triggering duplicate builds.
+- Commands/results: Fresh device readback at 21:22:13 UTC remains schedule running at approximately 1550 RPM, reset reason software via esp_restart, last physical button action none. User readiness response is still absent.
+- Validation: Software checks and deployment are complete; true enclosure power-on, physical button sequences and supervised offline/flow behavior remain unproven.
+- Next: When the user is at the pump and confirms it is ready to run, perform the documented supervised power-cycle and M5 front-button checks without pressing Reset to mask a startup failure.
+- Blockers: Physical access and user observation. No additional source change or software reboot can verify this requirement remotely.
