@@ -1,14 +1,14 @@
 # Agent Progress
 
 ## Current Resume Point
-- Last updated: 2026-10-12 14:22
-- Active goal: Implement manual-equivalent controls on the M5Stack front button, standalone schedules and power recovery, plus optional HA hour selection and timing reset
-- Current status: BLOCKED on user-supervised physical verification after three consecutive goal turns with the same missing readiness/observations. Software implementation is deployed and published: firmware d2c66e1, HA source a75c054, both dashboards and timing operations verified, GitHub CI passed both versions. Do not continue status-only checks without new user input or external evidence.
+- Last updated: 2026-10-12 17:58
+- Active goal: Design an iPhone-17-first pump-control preview with desktop support, preserving the accepted firmware and live HA controls
+- Current status: User accepted and ended the firmware field test, then selected the first Superdesign concept and requested telemetry, an RPM dial with internal history line, the retained current-position schedule graphic, and original Schedule A/B images. A refined non-live preview is on the same design draft. No further pump commands or HA edits.
 - Files touched: home_assistant/controls.json, home_assistant/dashboard_update.mjs, tools/ha_api.mjs, tests/test_home_assistant.mjs, CI, README, docs/HOME_ASSISTANT.md, CHANGELOG, AGENT_PROGRESS.md
 - Commands run: tests/run_host_tests.sh PASS; node --test tests/test_home_assistant.mjs PASS; node --check tools/ha_api.mjs PASS; git diff --check PASS; native HA edits with API readbacks and semantic comparisons
-- Validation state: Device metadata confirms 0.2.0-rc1 / ESPHome 2026.9.1. Automatic warm-start Hour 1/priming observed. Actual hour and phase follow HA selection/default reset; timing automation enabled and periodic triggers observed. Both dashboard readbacks exactly match reviewed payloads; no retired timing references in any available dashboard. Cold-power and physical button operation remain unverified.
-- Next action: Await user's readiness/observations for a supervised cold power cycle and physical M5 button tests. Do not reinstall the running candidate or repeatedly rerun completed audits. With confirmation, observe the normal enclosure supply, no Reset press, and actual button/flow behavior; preserve diagnostics if it fails.
-- Blockers: User presence is required for a true power-cycle, physical button and supervised hydraulic/offline checks. Experimental freeze sensor equivalence remains outside the verified feature set. No hardware test has been claimed complete.
+- Validation state: Accepted field evidence covers cold-power Hour 1 startup, HA reconnect alignment, Override/resume, Pause/resume, three-minute priming and scheduled 5 PM B1 stop. Extended field coverage is explicitly not claimed. UI preview includes all 24 hours/16 source-derived profiles, original uncropped reference images and a labeled 53-point recorded test trace. Phone controls are ordered ahead of settings; preview Pause/Resume/disconnected states have been checked.
+- Next action: Review the saved Superdesign version 5 with the user. Resume from private .superdesign/resume.json rather than rediscovering the design. Live HA implementation requires the user's approval; do not restart firmware tests.
+- Blockers: None for design review. The redesign is a preview, not a live deployment.
 - Do not repeat: Do not simplify the button mapping; do not hard-code 10:50 PM in firmware; do not publish configured firmware binaries or credentials. macOS credential helper stalled; scoped gh auth git-credential push succeeded. Browser raw-GitHub navigation was blocked; local reviewed candidate was used.
 
 ## Chapter Log
@@ -192,3 +192,63 @@
 - Validation: Software checks and deployment are complete; true enclosure power-on, physical button sequences and supervised offline/flow behavior remain unproven.
 - Next: When the user is at the pump and confirms it is ready to run, perform the documented supervised power-cycle and M5 front-button checks without pressing Reset to mask a startup failure.
 - Blockers: Physical access and user observation. No additional source change or software reboot can verify this requirement remotely.
+
+### 2026-10-12 16:41 - user at pump; physical verification resumed
+- Goal: Verify automatic startup through the enclosure's normal power supply, then verify the M5 front-button behavior.
+- Progress: User explicitly resumed and reports being beside the pump. Captured a fresh live baseline rather than relying on the earlier afternoon snapshot.
+- Decisions: No remote motor command, reset, flash, network change or power cycle. Obtain normal-flow and existing-disconnect confirmation before directing the test. Previous blocked audit no longer applies to this resumed work.
+- Files changed: AGENT_PROGRESS.md only.
+- Commands/results: Read-only snapshot at 23:41:30 UTC: schedule running, actual approximately 1549 RPM, Hour 18, communication healthy, motor fault off, last button action none, reset reason software via esp_restart, uptime approximately 12660 seconds.
+- Validation: Controller is reachable and reporting normal scheduled operation. Physical water flow, cold-power recovery and button actions are not established by this baseline.
+- Next: Ask the user to confirm normal flow and safe control of power to both the motor and M5. Keep the enclosure closed and do not use Reset during the cold-start test.
+- Blockers: Awaiting that specific physical-readiness confirmation, not additional software implementation.
+
+### 2026-10-12 16:49 - first real power-restoration trial passed
+- Goal: Verify the original no-Reset requirement through the enclosure's normal power source.
+- Progress: User confirmed normal pump operation and a shared power disconnect, then reported power off. Timed a conservative interval from 23:46:00 to 23:47:07 UTC before authorizing restoration. User restored power with instructions not to press either button and reported that the pump turned on and is running.
+- Decisions: Treat this as one successful cold-power trial, not a guarantee against all power-supply conditions. Preserve motor safety gates. No firmware flash, software restart or remote Run command occurred during the test.
+- Files changed: AGENT_PROGRESS.md.
+- Commands/results: HA became unavailable at 23:46:59 UTC. After restoration, device data at 23:48:32 reported power-on event, uptime approximately 1.18 seconds, priming, healthy communication, no motor fault, and saved B1. Actual speed reached approximately 3449 RPM. At 23:48:33 the schedule hour was 18 and reported phase subsequently matched the 11 PM reference.
+- Validation: Real power-off/on, fresh device boot and automatic motor startup are corroborated by the user's observation and controller diagnostics. HA reconnection restored the current timing without forcing a different profile. Physical button behavior remains untested.
+- Next: Supervised three-press schedule report on the M5 front button; then the remaining manual actions and offline behavior.
+- Blockers: None for the next physical test while the user remains at the pump. Do not mark the full goal complete from this single passed requirement.
+
+### 2026-10-12 16:54 - physical Override exit and Pause verified
+- Goal: Verify the M5 front button using actual input events and motor behavior.
+- Progress: The user reported one LED blink during the intended three-press check, but history shows only single press: override at 23:51:16 UTC and 24-hour override mode. Did not label that a successful triple press. Guided a four-second hold/release; recorded hold and release: resume at 23:53:27 and schedule running. User confirmed the pump slowed. Then the user performed two quick presses and confirmed it paused/stopped.
+- Decisions: Give one clear button sequence at a time. Preserve manual mode-specific behavior: leave Override with a hold before attempting the Operating-mode double press. No remote pump command was used to substitute for a physical test.
+- Files changed: AGENT_PROGRESS.md.
+- Commands/results: At 23:54:18 UTC, diagnostic changed to double press: pause and maintenance pause; actual RPM reached zero at 23:54:22. Readback at 23:54:41 confirmed Pause on, actual/target zero, Hour 18 and no motor fault. Cold-start history additionally proves unavailable -> Hour 1 at 23:48:32 -> Hour 18 at 23:48:33; reconnect automation triggered with that first fresh hour.
+- Validation: Power restoration, actual single-press dispatch, hold-to-exit-Override and double-press Pause are now physically evidenced. Triple-press report and its LED pattern are still unverified, despite the earlier blink observation.
+- Next: Physical hold/release from Pause, then retry triple press and continue remaining local programming/offline checks.
+- Blockers: None while the user remains available. Do not remotely resume the paused pump; the next transition should come from the user's front-button input.
+
+### 2026-10-12 16:57 - physical resume from Pause verified
+- Goal: Verify the manual hold/release action starts operation again after a physical Pause.
+- Progress: After being asked to hold the large front button for four seconds and release, the device reported hold and release: resume at 23:56:40 UTC. Pause cleared and the motor restarted its prime.
+- Decisions: No remote Resume/Run action. Await the remaining physical LED/report test rather than treating any blink as a successful triple press.
+- Files changed: AGENT_PROGRESS.md.
+- Commands/results: Readback at 23:57:01 UTC: last action hold and release: resume, Pause off, priming, actual 3450 RPM, Hour 18. The bounded read-only observation process finished normally after confirming rotation.
+- Validation: Physical hold-to-resume from Pause is evidenced by the fresh action, mode and actual motor speed. Prior double-press stop also has user confirmation. The default B1 scheduled-off boundary is 5 PM Pacific; do not mistake that transition for a button effect.
+- Next: Three quick presses with full releases, approximately within one second, then observe the LED without further presses for eight seconds.
+- Blockers: None for the next supervised input test.
+
+### 2026-10-12 17:00 - three-minute prime and scheduled-off boundary verified
+- Goal: Verify the real motor transitions from prime to its selected schedule and respects the 11 PM daily reference.
+- Progress: User confirmed the resumed pump ran full speed with solid green LED and later reported it slowing. Read-only monitoring captured the complete prime-to-schedule-to-off sequence without button or remote-control intervention.
+- Decisions: The 5 PM stop is the B1 Hour 19 boundary, not a Pause command or button failure. The next three-press test should report the profile while leaving the motor scheduled off.
+- Files changed: AGENT_PROGRESS.md.
+- Commands/results: Priming began 23:56:42 UTC and ended 23:59:42 UTC. Target changed to 1550 RPM; actual reached 1550 at 23:59:52. At 00:00:01 UTC (5 PM Pacific on October 12), mode was schedule stopped and Hour 19; actual reached zero by 00:00:07. Pause stayed off throughout.
+- Validation: Physical user observations plus fresh motor telemetry corroborate the three-minute priming behavior. The selected schedule's real-time off transition is verified. The bounded observation process completed normally.
+- Next: Three quick front-button taps, then eight seconds without touching the button, to verify Schedule Check and its LED report.
+- Blockers: None for the next supervised test; programming/persistence and isolated offline operation still need validation.
+
+### 2026-10-12 18:11 - user-accepted firmware and phone UI preview handoff
+- Goal: Preserve the accepted firmware result and deliver the requested phone-first UI concept without changing the live pump.
+- Progress: User concluded the 5 PM field test as working. Updated README, changelog and HA documentation with verified cold-power, button, priming and scheduled-stop results plus unexercised coverage. User then selected the first Superdesign direction and requested iPhone 17 priority, Pause/Override/Resume controls, an RPM dial with an internal line graph, the retained schedule-position marker, telemetry and the existing Schedule A/B images.
+- Decisions: No more pump commands or live HA writes. Superdesign is the user-selected preview surface; analytics guidance supplies source/metric and chart QA constraints, not a separate BI report. Keep private snapshots, design prompts, generated HTML and cloud identifiers out of Git. The installed firmware version and release tag are unchanged.
+- Files changed: Public documentation and .gitignore; private .superdesign context, preview template, source-derived schedules, recorded telemetry, exports, images and resume metadata.
+- Commands/results: Superdesign authenticated and generated the selected concept; refined it in place through version 5 with preserved version history. CLI imports returned no warnings. Preview JavaScript syntax passed. All 24 hour options and 16 source-derived profiles are present. Original A/B image checksums matched the uploaded copies; both render uncropped and link to full size.
+- Validation: Native browser checks covered 402x874 phone and 1440x1000 desktop layouts, no phone horizontal overflow, all three primary controls above y=746, correct Hour 19 marker at 75 percent, hour selection/default reset, Pause/Resume without forced startup, and disconnected controls disabled with stale data labeled. Telemetry uses 53 samples from the recorded 13-minute test, with actual/command units, gaps and partial energy estimates clearly identified. Phone, telemetry and desktop screenshots were saved privately.
+- Next: User review of the existing preview. Implement into HA only after approval; do not treat prototype clicks as real integration tests.
+- Blockers: None for design handoff. This is a reviewed design preview, not a new live dashboard deployment.

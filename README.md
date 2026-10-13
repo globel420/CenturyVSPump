@@ -52,10 +52,11 @@ The deployed HA controls use a 1–24 hour dropdown and **Reset to Default Timin
 | Manual button, LED patterns, startup and phase correction | Host tested; controller tests use an explicitly separate transport double |
 | ESPHome configuration | Compiled with the pinned version in `requirements-dev.txt` |
 | ESPHome 2026.7+ response layout | Supported |
-| Installed candidate | 0.2.0-rc1 / ESPHome 2026.9.1 confirmed on the target; automatic Hour 1 after software restart observed |
-| EVC165 serial control | Live connection and approximately 1550 RPM reports observed; hydraulic operation still needs supervision |
+| Installed candidate | 0.2.0-rc1 / ESPHome 2026.9.1; a supervised shared-supply power cycle started Hour 1, followed by HA alignment |
+| EVC165 serial control | User-observed run/stop behavior corroborated by live RPM, connection and fault readings |
 | HA hour selector/default reset | Real device phase changes and timing-reference persistence verified; profile and running speed preserved |
-| Cold-power startup and physical button | Not yet verified on the enclosure; software restart does not prove cold-power recovery |
+| Field acceptance, 2026-10-12 | Automatic cold start, Override/resume, Pause/resume, three-minute prime and scheduled 5 PM B1 stop observed; user concluded testing as working |
+| Additional field coverage | Triple-press report, physical programming/persistence and isolated offline operation were not exercised to completion; their implementation remains host-tested, not field-verified in this session |
 | Motor ambient-temperature register | Implemented as an experimental freeze input; must be verified on the actual EVC165 |
 | Wiring, switch positions, dry-run protection, and real pump behavior | Physical verification still required |
 
@@ -94,4 +95,8 @@ Run all host tests with `tests/run_host_tests.sh`. Validate and compile the comp
 
 This work builds on [gazoodle/CenturyVSPump](https://github.com/gazoodle/CenturyVSPump). Protocol behavior comes from the bundled Gen3 EPC document and is cross-checked against the [VGreen EVO installation and user guide](https://electricmotorwarehouse.com/content/PDF/EVO%20Install%20Manual.pdf). ESPHome 2026.7+ response handling follows the hardware-tested findings in [upstream PR #20](https://github.com/gazoodle/CenturyVSPump/pull/20), and current EVC/EVO command ordering is corroborated by [upstream issue #17](https://github.com/gazoodle/CenturyVSPump/issues/17).
 
-Use this project at your own risk. It sends real motor commands over an unsupported interface and has not yet completed physical validation on the target installation.
+Use this project at your own risk. It sends real motor commands over an unsupported interface. The accepted field test covers the behaviors listed above, not universal power-supply reliability, electrical certification or experimental freeze protection.
+
+## UI design follow-up
+
+A separate, non-live Superdesign preview is being reviewed for iPhone 17 and desktop. Priorities are large Pause, Override and Resume Schedule controls, a compact RPM dial with a history line, the retained schedule-position graphic, clear telemetry provenance and the original Schedule A/B reference images. The preview does not send pump commands and has not replaced the live Home Assistant dashboard. Private design state and captured test data remain outside Git.

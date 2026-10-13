@@ -1,6 +1,6 @@
 # Optional Home Assistant schedule controls
 
-Status: firmware **0.2.0-rc1 (ESPHome 2026.9.1)** is installed. The native hour selector, timing script, reconnect automation and both dashboard copies were deployed and live-checked on 2026-10-12. The M5's button, profile saving, schedules and boot recovery are implemented locally and never call HA. Physical button and cold-power verification are still pending.
+Status: firmware **0.2.0-rc1 (ESPHome 2026.9.1)** is installed. Native hour selection, timing reset and synchronization were deployed and live-checked on 2026-10-12. The user accepted the installation after the supervised cold-power, basic-button, priming and scheduled-stop tests below. Local controller behavior remains independent of HA by design; unexercised physical paths are listed separately rather than claimed verified.
 
 The reusable native configuration is in [`home_assistant/controls.json`](../home_assistant/controls.json). It is a reference for HA's helper, script and automation editors, not a package to paste into `configuration.yaml`. The default helper value is a one-time initialization, not a startup reset. Instance-specific full dashboard exports and configured firmware remain private and ignored by Git.
 
@@ -49,12 +49,15 @@ Rollback the firmware and HA timing controls together. A compiled reference imag
 
 ## Verified live results
 
-- Device metadata reports 0.2.0-rc1 / ESPHome 2026.9.1. After installation, the M5 automatically started Hour 1 and priming, without a Reset or Run command. Reset reason was `software via esp_restart`: this is not evidence of a successful cold power cycle.
+- Device metadata reports 0.2.0-rc1 / ESPHome 2026.9.1. After the initial software-restart observation, the user performed a supervised power cycle through the normal shared pump/M5 supply, with a timed off interval of at least 60 seconds. The user restored power under instructions not to press Reset and confirmed the pump started. Fresh diagnostics reported `power-on event`, restarted uptime, healthy communication and approximately 3450 RPM priming.
+- Recorded history shows Hour 1 at 4:48:32 PM Pacific and HA-corrected Hour 18 at 4:48:33 PM, with B1 preserved. This is one successful real power-restoration trial, not a claim about all supply conditions.
 - Selecting Hour 15 on the pump page changed the real device hour to 15 and saved a new daily reference. The selected B1 profile and approximately 1550 RPM were preserved.
 - Reset to Default Timing restored `23:00:00` and the correct current Hour 16, rather than jumping to Hour 1. Reported schedule-position seconds matched the reference within the diagnostic reporting interval.
-- Background synchronization is enabled; the 2:15 PM periodic-sync trace finished successfully with the timing script executed. Reconnect and HA-restart triggers are configured but have not yet been exercised by a controlled outage.
+- Background synchronization is enabled; the 2:15 PM periodic-sync trace finished successfully, and M5 reconnect synchronization was exercised in the later power-cycle test. An HA-server restart was not part of the session.
 - Pool Pump and Home Operations readbacks exactly matched their reviewed changes. All available dashboard configs were checked for the retired controls and old 10:45/10:50 scheduling guidance; none remained. The two obsolete SMUD pump automations are disabled, not deleted. Energy/billing content and rollback exports were preserved.
-- Physical one/two/three-press, hold/programming, offline operation and enclosure cold-power tests still require observation at the pump. Host tests are not substitutes for these checks.
+- Physical input events corroborate single-press Override, hold/release out of Override, double-press Pause (actual/target zero RPM) and hold/release from Pause (3450 RPM prime). The user observed slowdown, stop and restart. No remote motor command substituted for a button action.
+- The resumed prime lasted from 4:56:42 to 4:59:42 PM Pacific, then actual speed settled to 1550 RPM. At 5 PM, B1 entered Hour 19 and stopped with Pause off. The user confirmed that stop and explicitly concluded the test as working.
+- Coverage not claimed: the attempted triple-press report recorded a single-press Override, so a blink alone was not counted as a passed Schedule Check. Physical programming/persistence, isolated offline operation, an HA-server restart and experimental freeze behavior were not exercised to completion. Testing ended at the user's request.
 
 ## Local preparation tools
 

@@ -169,3 +169,6 @@ secrets.yaml
 # Local research/build scratch files
 tmp/
 tests/test_stock_schedule
+
+# Private design drafts, service state, and captured test telemetry
+.superdesign/
