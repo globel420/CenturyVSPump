@@ -1,5 +1,11 @@
 # Changes
 
+## Dashboard card 1.0.2 — live 2026-10-12
+
+- Replace forced light styling with matched light/dark tokens for surfaces, text, controls, dialogs, schedule colors and SVG charts. Follow HA's resolved `hass.themes.darkMode`, including Auto, rather than overriding a user's HA choice with a separate OS query.
+- Verify native HA Light, Dark and Auto changes update the already-open pump page without reloading; restore the user's original Auto selection.
+- Preserve all layout, entity, history, schedule and action behavior. Twelve HA/card tests pass, including theme selection and text-contrast checks. Dashboard configuration is unchanged; only the local module/resource version was updated.
+
 ## Dashboard card 1.0.1 — live 2026-10-12
 
 - Enable the approved local module and replace only the pump overview; verify the saved server configuration and unchanged Advanced view.

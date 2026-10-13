@@ -63,7 +63,9 @@ Rollback the firmware and HA timing controls together. A compiled reference imag
 
 ### Phone-first pump dashboard card
 
-Deployment status: **card 1.0.1 is live on the pump overview**, verified on 2026-10-12 after the user's explicit module-activation approval. The server configuration exactly matches the reviewed candidate, and the Advanced view matches the pre-rollout export. Phone (402px) and desktop (1440px) renders, live/history data, full-size chart assets and cancel-only action confirmations were checked. No physical motor action was issued during these UI checks.
+Deployment status: **card 1.0.2 is live on the pump overview**, verified on 2026-10-12 after the user's explicit module-activation approval and requested theme correction. The server configuration exactly matches the reviewed candidate, and the Advanced view matches the pre-rollout export. Phone (402px) and desktop (1440px) renders, live/history data, full-size chart assets and cancel-only action confirmations were checked. No physical motor action was issued during these UI checks.
+
+The card follows HA's [effective `hass.themes.darkMode` flag](https://github.com/home-assistant/frontend/blob/dev/src/data/ws-themes.ts), which resolves the user's Light, Dark or Auto choice. Both palettes apply to charts, selectors and confirmation dialogs as well as the card backgrounds. Live Light → Dark → Auto switching was verified on an already-open pump page without reload, and the original Auto preference was restored. Theme changes do not call any controller action. The original manual chart images are not recolored or inverted.
 
 [`home_assistant/vgreen-pump-card.js`](../home_assistant/vgreen-pump-card.js) implements the approved light/teal layout as a local custom card, without a framework, third-party JavaScript, embedded credentials or a cloud runtime. It uses HA's documented [custom-card interface](https://developers.home-assistant.io/docs/frontend/custom-ui/custom-card/) and [frontend data methods](https://developers.home-assistant.io/docs/frontend/data/).
 
@@ -76,7 +78,7 @@ Deployment status: **card 1.0.1 is live on the pump overview**, verified on 2026
 Install/update through the supported HA editor and [dashboard resource UI](https://developers.home-assistant.io/docs/frontend/custom-ui/registering-resources/):
 
 1. Save a fresh dashboard export privately. Do not replace it with an older design snapshot.
-2. Place the reviewed card at `www/vgreen-pump-card.js` and register `/local/vgreen-pump-card.js?v=1.0.1` as a JavaScript module. Only code belongs in this publicly served location; never put credentials or private telemetry exports there.
+2. Place the reviewed card at `www/vgreen-pump-card.js` and register `/local/vgreen-pump-card.js?v=1.0.2` as a JavaScript module. Only code belongs in this publicly served location; never put credentials or private telemetry exports there.
 3. Prepare an overview-only candidate with `node home_assistant/pump_dashboard.mjs BEFORE.json CANDIDATE.json`. This preserves the Advanced view and does not change helpers, automations or firmware.
 4. Review and save the candidate in HA's raw dashboard editor, then reload the page. Re-read the server configuration and compare it with the reviewed candidate; check the actual rendered card and live telemetry separately.
 5. Validate phone and desktop layouts. Open and cancel confirmation dialogs if testing the UI without pump supervision; do not confirm a motor action just to test a button.

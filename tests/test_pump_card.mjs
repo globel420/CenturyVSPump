@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {PROFILES,DEFAULT_ENTITIES as E,numeric,nextChange,pumpModel,commandPlan,historyPoints,observedSeries,observedDuration,stepPath} from '../home_assistant/vgreen-pump-card.js';
+import {PROFILES,PALETTES,themeMode,DEFAULT_ENTITIES as E,numeric,nextChange,pumpModel,commandPlan,historyPoints,observedSeries,observedDuration,stepPath} from '../home_assistant/vgreen-pump-card.js';
 import {installPumpOverview} from '../home_assistant/pump_dashboard.mjs';
 
 test('all 16 dashboard profiles equal the firmware source of truth',async()=>{
@@ -70,4 +70,24 @@ test('card does not embed preview data, credentials, third-party scripts or auto
   assert.doesNotMatch(source,/Bearer |access_token|telemetry-snapshot|Preview:|supabase|https:\/\/.*\.js/);
   assert.equal((source.match(/\.callService\(/g)||[]).length,1);
   assert.ok(source.indexOf('if(!await this.confirm(messages[action]))return;')<source.indexOf('await this._hass.callService('));
+});
+
+test('theme follows the resolved HA mode, including explicit light and Auto results',()=>{
+  assert.equal(themeMode({themes:{darkMode:true}}),'dark');
+  assert.equal(themeMode({themes:{darkMode:false}}),'light');
+  assert.equal(themeMode({themes:{darkMode:false},selectedTheme:{dark:true}}),'light');
+  assert.equal(themeMode({themes:{darkMode:true},selectedTheme:{}}),'dark');
+  assert.equal(themeMode({}),'light');
+});
+test('light and dark palettes cover identical tokens and retain readable text',()=>{
+  assert.deepEqual(Object.keys(PALETTES.light).sort(),Object.keys(PALETTES.dark).sort());
+  const luminance=hex=>{
+    const rgb=hex.slice(1).match(/../g).map(v=>parseInt(v,16)/255).map(v=>v<=0.04045?v/12.92:((v+0.055)/1.055)**2.4);
+    return rgb[0]*0.2126+rgb[1]*0.7152+rgb[2]*0.0722;
+  };
+  const ratio=(a,b)=>{const l=[luminance(a),luminance(b)].sort((a,b)=>b-a);return (l[0]+0.05)/(l[1]+0.05);};
+  for(const [name,p] of Object.entries(PALETTES))for(const [fg,bg] of [['text','surface'],['muted','surface'],['muted','page'],['muted','soft'],['warning-text','warning-bg'],['danger-text','danger-bg'],['on-accent','accent']])
+    assert.ok(ratio(p[fg],p[bg])>=4.5,`${name} ${fg}/${bg}: ${ratio(p[fg],p[bg])}`);
+  assert.ok(ratio(PALETTES.dark.accent,PALETTES.dark['resume-bg'])>=4.5);
+  assert.ok(ratio(PALETTES.dark.marker,PALETTES.dark.soft)>=3);
 });

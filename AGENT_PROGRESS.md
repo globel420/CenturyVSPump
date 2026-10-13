@@ -1,13 +1,13 @@
 # Agent Progress
 
 ## Current Resume Point
-- Last updated: 2026-10-12 19:56
-- Active goal: Deploy the approved phone-first design into the live HA pump overview while preserving firmware and manual control behavior
-- Current status: Approved rollout complete: local card 1.0.1 is live on /pool-pump/overview, with exactly one versioned resource. Saved config equals the reviewed candidate and the Advanced view is unchanged. Real state/history, phone and desktop layouts, original images and cancel-only confirmations are verified. Firmware and motor state were not changed.
+- Last updated: 2026-10-12 20:21
+- Active goal: Add a dark palette and automatic HA light/dark theme switching to the approved live pump dashboard
+- Current status: Card 1.0.2 is live with automatic HA light/dark switching. The existing Superdesign draft has a matching dark version 7. Actual HA Light, Dark and Auto choices updated the already-open pump page without reload; original Auto is restored. Only presentation and resource version changed.
 - Files touched: home_assistant/vgreen-pump-card.js, home_assistant/package.json, home_assistant/pump_dashboard.mjs, tests/test_pump_card.mjs, CI, docs/HOME_ASSISTANT.md, CHANGELOG.md, AGENT_PROGRESS.md; private dashboard backup/candidate and approval screenshot
-- Commands run: JavaScript syntax and all ten HA/card tests PASS; real HA history/config/resource readbacks PASS; final hosted-source fingerprint PASS; browser phone/desktop and cancel-only checks PASS. Implementation commit 3a0d5f0 CI passed both firmware matrices.
-- Validation state: All 16 profile tables and 180 boundaries pass. Live 24-hour history hydrated; the final 90x22 internal sparkline does not overlap RPM. Phone width 402 has no horizontal overflow and all primary controls end by y=787; desktop width 1440 inspected. Both original images render uncropped. Six control/timing entities retained identical states and last_changed timestamps after four canceled dialogs. Connected B1 remains scheduled off at 0 RPM, next 3450 RPM at 11 PM.
-- Next action: No remaining implementation step for the approved rollout. Keep the live overview open for the user. Future changes require a new request; do not restart firmware tests. Roll back only the dashboard through the supported editor using .cache/recovery/pool-pump.ui-rollout-before.json if needed.
+- Commands run: Twelve HA/card tests and syntax PASS; hosted-source fingerprint and server config/resource readback PASS; native Light/Dark/Auto switch checks PASS; phone, history and desktop renders inspected; no card-specific browser errors.
+- Validation state: Theme, contrast, schedule and control tests pass. Real Light changed the open card to white surfaces; Dark and restored Auto changed it to dark green-gray surfaces with bright teal charts. Phone width 402 has no overflow; desktop 1440 and chart colors inspected. Core scheduling/control functions and action dispatch are byte-identical to the prior version; server dashboard config is unchanged. No motor actions were sent.
+- Next action: No additional implementation remains for the theme request. Publish the final source/docs and leave the live page open at normal browser size. Preserve .cache/recovery/vgreen-pump-card.before-dark.js and the dashboard backup for rollback.
 - Blockers: None. No physical control-service execution was claimed from this non-actuating UI validation.
 - Do not repeat: Do not simplify the button mapping; do not hard-code 10:50 PM in firmware; do not publish configured firmware binaries or credentials. macOS credential helper stalled; scoped gh auth git-credential push succeeded. Browser raw-GitHub navigation was blocked; local reviewed candidate was used.
 
@@ -282,3 +282,13 @@
 - Validation: Actual live phone 402x874 and desktop 1440x1000 rendered and inspected. Live history, internal 90x22 sparkline, moving position marker, correct 11 PM next change and original uncropped A/B images are verified. Pause, Override, Hour 1 and A2 confirmation dialogs were opened and canceled; six controls/timing states plus last_changed values stayed identical. B1, current phase, Pause off and zero actual RPM remain intact.
 - Next: Publish the final visual correction and rollout record; hand off the live page. No additional physical tests are needed for this UI request.
 - Blockers: None. Browser-wide viewport helper did not resize the resumed target reliably; targeted CDP viewport verification was used and must be cleared before handoff.
+
+### 2026-10-12 20:21 - automatic dark and light themes verified live
+- Goal: Correct the fixed light-only pump UI while preserving the approved layout and all controller behavior.
+- Progress: Added shared presentation tokens and a dark palette. Bind the host dark attribute to HA's resolved theme flag. Applied matching tokens to the dial, history, schedule segments, selectors, dialogs, notifications and state colors. Updated the selected Superdesign draft in place to dark version 7 without generation credits.
+- Decisions: Respect native HA Light/Dark/Auto instead of a separate OS override. Keep the original light palette and unmodified manual chart images. No new theme switch, helper, automation or motor action.
+- Files changed: Card 1.0.2, theme/contrast tests, README, HA docs, changelog and checkpoint. Private init/resume metadata, rollback code snapshot and screenshots were saved outside Git.
+- Commands/results: Twelve HA/card tests PASS. Hosted file matches local source: 40335 bytes, SHA256 326865ff674977d34294f26665fea4691c4db229238ef7ec1aeccc46b3b03ab8. Exactly one v1.0.2 resource is registered. Server dashboard equals the pre-theme backup. Schedule/control core and dispatch source are unchanged.
+- Validation: On the native HA profile page, Light immediately changed the already-open card to color-scheme light and white surfaces; Dark changed it to color-scheme dark and RGB 25/38/34 surfaces. Restored original Auto and verified the resulting dark state. Dark phone 402px, desktop 1440px and real-history renders inspected. Light phone render preserved. No page reload was required for the theme switches and no card-specific browser errors were observed.
+- Next: Publish source/docs and hand off the live page. Clear temporary viewport overrides before ending the turn.
+- Blockers: None.
