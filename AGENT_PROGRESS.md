@@ -1,13 +1,13 @@
 # Agent Progress
 
 ## Current Resume Point
-- Last updated: 2026-10-12 17:58
-- Active goal: Design an iPhone-17-first pump-control preview with desktop support, preserving the accepted firmware and live HA controls
-- Current status: User accepted and ended the firmware field test, then selected the first Superdesign concept and requested telemetry, an RPM dial with internal history line, the retained current-position schedule graphic, and original Schedule A/B images. A refined non-live preview is on the same design draft. No further pump commands or HA edits.
-- Files touched: home_assistant/controls.json, home_assistant/dashboard_update.mjs, tools/ha_api.mjs, tests/test_home_assistant.mjs, CI, README, docs/HOME_ASSISTANT.md, CHANGELOG, AGENT_PROGRESS.md
-- Commands run: tests/run_host_tests.sh PASS; node --test tests/test_home_assistant.mjs PASS; node --check tools/ha_api.mjs PASS; git diff --check PASS; native HA edits with API readbacks and semantic comparisons
-- Validation state: Accepted field evidence covers cold-power Hour 1 startup, HA reconnect alignment, Override/resume, Pause/resume, three-minute priming and scheduled 5 PM B1 stop. Extended field coverage is explicitly not claimed. UI preview includes all 24 hours/16 source-derived profiles, original uncropped reference images and a labeled 53-point recorded test trace. Phone controls are ordered ahead of settings; preview Pause/Resume/disconnected states have been checked.
-- Next action: Review the saved Superdesign version 5 with the user. Resume from private .superdesign/resume.json rather than rediscovering the design. Live HA implementation requires the user's approval; do not restart firmware tests.
+- Last updated: 2026-10-12 19:04
+- Active goal: Replace the preview dial's next-run sentence with the next scheduled speed-change time and destination RPM or Off
+- Current status: Saved and browser-verified version 6 of the selected preview. The dial now shows Next scheduled speed change with time and destination RPM or Off, derived from the selected profile and timing. Continuous profiles have no fictitious next change; offline values are labeled last known. Layout, schedule graphic, images and manual-mode explanations are preserved. No pump commands or HA edits.
+- Files touched: AGENT_PROGRESS.md; private ignored .superdesign template, export, boundary test, screenshots and resume metadata
+- Commands run: Preview builder and JavaScript syntax checks PASS; next-change boundary checks PASS; same-draft import and version 6 readback PASS; native browser phone and desktop checks PASS
+- Validation state: All 16 source-derived profiles passed 180 boundary cases, including overnight wrapping, continuous schedules and timing adjustments. Browser checks confirmed scheduled-off and running values, manual-hour/reset updates, continuous profile text and disconnected safety labels. Phone width 402 had no horizontal overflow and all primary controls ended above y=774; 1440-wide desktop rendering also inspected. Accepted hardware tests remain unchanged and were not repeated.
+- Next action: Review the updated preview with the user. Resume from private .superdesign/resume.json. Live HA implementation requires approval; do not restart firmware tests.
 - Blockers: None for design review. The redesign is a preview, not a live deployment.
 - Do not repeat: Do not simplify the button mapping; do not hard-code 10:50 PM in firmware; do not publish configured firmware binaries or credentials. macOS credential helper stalled; scoped gh auth git-credential push succeeded. Browser raw-GitHub navigation was blocked; local reviewed candidate was used.
 
@@ -252,3 +252,13 @@
 - Validation: Native browser checks covered 402x874 phone and 1440x1000 desktop layouts, no phone horizontal overflow, all three primary controls above y=746, correct Hour 19 marker at 75 percent, hour selection/default reset, Pause/Resume without forced startup, and disconnected controls disabled with stale data labeled. Telemetry uses 53 samples from the recorded 13-minute test, with actual/command units, gaps and partial energy estimates clearly identified. Phone, telemetry and desktop screenshots were saved privately.
 - Next: User review of the existing preview. Implement into HA only after approval; do not treat prototype clicks as real integration tests.
 - Blockers: None for design handoff. This is a reviewed design preview, not a new live dashboard deployment.
+
+### 2026-10-12 19:04 - next scheduled speed change beneath dial
+- Goal: Replace the next-run sentence with the next scheduled change time and destination speed.
+- Progress: Updated the existing selected Superdesign draft in place from version 5 to 6. The value follows all 16 real profile tables and the user-selected timing, includes scheduled Off, skips unchanged speeds and marks offline timing as last known. Kept Pause/Override/Priming/fault explanations and the existing visuals.
+- Decisions: This is a schedule forecast, not a prediction that manual modes will end. Constant-speed profiles show no changes. No live HA writes, firmware changes, pump commands or extra AI generation.
+- Files changed: AGENT_PROGRESS.md; private ignored preview template/export, test helper, screenshots and resume metadata.
+- Commands/results: Direct import succeeded without warnings; refetched version 6 exactly matches the edited document. JavaScript syntax passed. Sixteen profiles and 180 boundary cases passed, including wraparound, continuous operation and adjusted anchors.
+- Validation: Browser visibly shows 11 PM to 3450 RPM for the B1 scheduled-off example and 5 PM to Off while running. Manual Hour 1 changes the forecast and Reset restores it. Continuous and disconnected examples are correct. Phone 402x874 and desktop 1440x1000 inspected; screenshots saved privately.
+- Next: User review or the next requested refinement. Apply to HA only after explicit approval.
+- Blockers: None for this preview correction.
