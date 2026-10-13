@@ -87,7 +87,7 @@ Run all host tests with `tests/run_host_tests.sh`. Validate and compile the comp
 - `components/vgreen_evo_controller/` — offline schedule and behavior state machine.
 - `tests/` — host tests for every stock schedule boundary.
 - `vgreen_evo_atom.yaml` — M5Stack ATOM Lite reference firmware.
-- `home_assistant/` — native HA controls and narrowly scoped dashboard migration tool.
+- `home_assistant/` — native HA controls, the local pump dashboard card, and narrowly scoped dashboard migration tools.
 - `tools/ha_api.mjs` — credential-file-based HA readback/configuration client.
 - `example_century_vs_pump.yaml` — original minimal upstream example, retained for reference.
 
@@ -97,6 +97,8 @@ This work builds on [gazoodle/CenturyVSPump](https://github.com/gazoodle/Century
 
 Use this project at your own risk. It sends real motor commands over an unsupported interface. The accepted field test covers the behaviors listed above, not universal power-supply reliability, electrical certification or experimental freeze protection.
 
-## UI design follow-up
+## Phone-first pump dashboard
 
-A separate, non-live Superdesign preview is being reviewed for iPhone 17 and desktop. Priorities are large Pause, Override and Resume Schedule controls, a compact RPM dial with a history line, the retained schedule-position graphic, clear telemetry provenance and the original Schedule A/B reference images. The preview does not send pump commands and has not replaced the live Home Assistant dashboard. Private design state and captured test data remain outside Git.
+The approved design is deployed on the HA pump overview as local dashboard card **1.0.1** (2026-10-12). It includes large Pause, Override and Resume Schedule controls, an actual-RPM dial with an internal history line, the next scheduled speed change, the moving schedule-position graphic, real 24-hour telemetry and the original Schedule A/B images. Phone and desktop rendering were checked against the live instance. All actions require confirmation; cancel-only UI checks preserved the pump's state and timing. The Advanced view, firmware, helpers and automations are unchanged.
+
+See [installation, data semantics and UI rollback](docs/HOME_ASSISTANT.md#phone-first-pump-dashboard-card). The separate Superdesign preview remains a design artifact; private backups, screenshots and captured data remain outside Git.

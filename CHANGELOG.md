@@ -1,5 +1,12 @@
 # Changes
 
+## Dashboard card 1.0.1 — live 2026-10-12
+
+- Enable the approved local module and replace only the pump overview; verify the saved server configuration and unchanged Advanced view.
+- Correct the internal sparkline's SVG sizing so it stays below the RPM reading, then update the resource cache version.
+- Verify live phone and desktop layouts, real history hydration, both original chart images, current-position movement and next-change timing. Open and cancel Pause, Override, hour and profile confirmations; six control/timing states and their change timestamps remain identical.
+- No firmware flash, HA restart, helper/automation change or motor command was part of this UI rollout. Preserve a private pre-rollout dashboard export for exact UI rollback.
+
 ## Dashboard card 1.0.0 — implementation prepared 2026-10-12
 
 - Add a local, phone-first HA pump card matching the approved light/teal design, with actual-RPM dial and internal history line, next scheduled speed change, moving schedule marker, existing manual controls, all 16 profiles and the original schedule images.

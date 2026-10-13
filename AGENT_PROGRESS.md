@@ -1,14 +1,14 @@
 # Agent Progress
 
 ## Current Resume Point
-- Last updated: 2026-10-12 19:26
+- Last updated: 2026-10-12 19:56
 - Active goal: Deploy the approved phone-first design into the live HA pump overview while preserving firmware and manual control behavior
-- Current status: Built the live-data card and saved it to HA www/vgreen-pump-card.js through the File editor. A direct readback matches the reviewed source byte-for-byte. The existing overview is still unchanged. Resource registration is prepared but NOT submitted; awaiting the user's action-time confirmation of HA's custom-code security warning.
+- Current status: Approved rollout complete: local card 1.0.1 is live on /pool-pump/overview, with exactly one versioned resource. Saved config equals the reviewed candidate and the Advanced view is unchanged. Real state/history, phone and desktop layouts, original images and cancel-only confirmations are verified. Firmware and motor state were not changed.
 - Files touched: home_assistant/vgreen-pump-card.js, home_assistant/package.json, home_assistant/pump_dashboard.mjs, tests/test_pump_card.mjs, CI, docs/HOME_ASSISTANT.md, CHANGELOG.md, AGENT_PROGRESS.md; private dashboard backup/candidate and approval screenshot
-- Commands run: JavaScript syntax and all ten HA/card tests PASS; real HA history/readback PASS; deployed static source fingerprint PASS
-- Validation state: All 16 profile tables match firmware and 180 schedule-boundary cases pass. A real 24-hour history request returned four expected entity groups, including 7225 actual-RPM events, with gaps preserved. Current readback: connected, B1, Hour 21, 0 actual RPM, next scheduled 3450 RPM at 11 PM. No motor actions sent. Live rendered verification is pending resource activation.
-- Next action: On explicit approval, submit the prepared /local/vgreen-pump-card.js?v=1.0.0 JavaScript-module registration, then save .cache/recovery/pool-pump.ui-rollout-candidate.json through the raw dashboard editor. Refetch exact config, verify phone/desktop rendering and cancel-only confirmations, then publish final rollout evidence. Restore .cache/recovery/pool-pump.ui-rollout-before.json if the UI fails.
-- Blockers: One action-time approval requested before enabling the local module. API credential is read-only; use the signed-in admin UI without elevating its permissions. No further pump or firmware tests are authorized by this rollout.
+- Commands run: JavaScript syntax and all ten HA/card tests PASS; real HA history/config/resource readbacks PASS; final hosted-source fingerprint PASS; browser phone/desktop and cancel-only checks PASS. Implementation commit 3a0d5f0 CI passed both firmware matrices.
+- Validation state: All 16 profile tables and 180 boundaries pass. Live 24-hour history hydrated; the final 90x22 internal sparkline does not overlap RPM. Phone width 402 has no horizontal overflow and all primary controls end by y=787; desktop width 1440 inspected. Both original images render uncropped. Six control/timing entities retained identical states and last_changed timestamps after four canceled dialogs. Connected B1 remains scheduled off at 0 RPM, next 3450 RPM at 11 PM.
+- Next action: No remaining implementation step for the approved rollout. Keep the live overview open for the user. Future changes require a new request; do not restart firmware tests. Roll back only the dashboard through the supported editor using .cache/recovery/pool-pump.ui-rollout-before.json if needed.
+- Blockers: None. No physical control-service execution was claimed from this non-actuating UI validation.
 - Do not repeat: Do not simplify the button mapping; do not hard-code 10:50 PM in firmware; do not publish configured firmware binaries or credentials. macOS credential helper stalled; scoped gh auth git-credential push succeeded. Browser raw-GitHub navigation was blocked; local reviewed candidate was used.
 
 ## Chapter Log
@@ -272,3 +272,13 @@
 - Validation: Static upload and read-only data integration are verified. Resource activation, live layout, dialog cancellation, and saved-dashboard equality remain pending. No control service was called.
 - Next: Confirm module activation, save the prepared candidate, verify rendering/data/rollback scope, and complete GitHub status.
 - Blockers: Waiting for the explicit response to the module activation question; current page stays operational.
+
+### 2026-10-12 19:56 - approved live pump dashboard rollout verified
+- Goal: Enable the approved local card and finish the live overview rollout without operating the pump.
+- Progress: User explicitly approved module activation. Registered the resource, saved the overview-only candidate through HA's native raw editor and refetched exact server equality. Advanced remains identical. Fixed one visual SVG selector collision found in the phone render and deployed card 1.0.1 with a fresh resource query version.
+- Decisions: No firmware/helper/automation changes, HA restart or motor commands. Confirmation dialogs were tested only by cancellation. Keep all rollback exports and rendered screenshots private.
+- Files changed: Card 1.0.1, README, HA documentation, changelog and this checkpoint; private resume/deployment metadata and screenshots.
+- Commands/results: Ten HA/card tests PASS. Final static file is 37897 bytes with SHA256 ab9a72a97051f6dcae511d305606f2248088612f407f5dae95dbb6da735f17b8 and exactly matches local source. Server resource readback reports a single v1.0.1 module. Saved dashboard equals the reviewed candidate. Prior implementation CI run 38336932833 passed both firmware matrices.
+- Validation: Actual live phone 402x874 and desktop 1440x1000 rendered and inspected. Live history, internal 90x22 sparkline, moving position marker, correct 11 PM next change and original uncropped A/B images are verified. Pause, Override, Hour 1 and A2 confirmation dialogs were opened and canceled; six controls/timing states plus last_changed values stayed identical. B1, current phase, Pause off and zero actual RPM remain intact.
+- Next: Publish the final visual correction and rollout record; hand off the live page. No additional physical tests are needed for this UI request.
+- Blockers: None. Browser-wide viewport helper did not resize the resumed target reliably; targeted CDP viewport verification was used and must be cleared before handoff.
