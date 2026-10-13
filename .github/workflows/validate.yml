@@ -23,7 +23,8 @@ jobs:
       - name: Test native HA controls and reversible dashboard migration
         run: |
           node --check tools/ha_api.mjs
-          node --test tests/test_home_assistant.mjs
+          node --check home_assistant/vgreen-pump-card.js
+          node --test tests/test_home_assistant.mjs tests/test_pump_card.mjs
 
       - uses: actions/setup-python@v5
         with:

@@ -1,14 +1,14 @@
 # Agent Progress
 
 ## Current Resume Point
-- Last updated: 2026-10-12 19:04
-- Active goal: Replace the preview dial's next-run sentence with the next scheduled speed-change time and destination RPM or Off
-- Current status: Saved and browser-verified version 6 of the selected preview. The dial now shows Next scheduled speed change with time and destination RPM or Off, derived from the selected profile and timing. Continuous profiles have no fictitious next change; offline values are labeled last known. Layout, schedule graphic, images and manual-mode explanations are preserved. No pump commands or HA edits.
-- Files touched: AGENT_PROGRESS.md; private ignored .superdesign template, export, boundary test, screenshots and resume metadata
-- Commands run: Preview builder and JavaScript syntax checks PASS; next-change boundary checks PASS; same-draft import and version 6 readback PASS; native browser phone and desktop checks PASS
-- Validation state: All 16 source-derived profiles passed 180 boundary cases, including overnight wrapping, continuous schedules and timing adjustments. Browser checks confirmed scheduled-off and running values, manual-hour/reset updates, continuous profile text and disconnected safety labels. Phone width 402 had no horizontal overflow and all primary controls ended above y=774; 1440-wide desktop rendering also inspected. Accepted hardware tests remain unchanged and were not repeated.
-- Next action: Review the updated preview with the user. Resume from private .superdesign/resume.json. Live HA implementation requires approval; do not restart firmware tests.
-- Blockers: None for design review. The redesign is a preview, not a live deployment.
+- Last updated: 2026-10-12 19:26
+- Active goal: Deploy the approved phone-first design into the live HA pump overview while preserving firmware and manual control behavior
+- Current status: Built the live-data card and saved it to HA www/vgreen-pump-card.js through the File editor. A direct readback matches the reviewed source byte-for-byte. The existing overview is still unchanged. Resource registration is prepared but NOT submitted; awaiting the user's action-time confirmation of HA's custom-code security warning.
+- Files touched: home_assistant/vgreen-pump-card.js, home_assistant/package.json, home_assistant/pump_dashboard.mjs, tests/test_pump_card.mjs, CI, docs/HOME_ASSISTANT.md, CHANGELOG.md, AGENT_PROGRESS.md; private dashboard backup/candidate and approval screenshot
+- Commands run: JavaScript syntax and all ten HA/card tests PASS; real HA history/readback PASS; deployed static source fingerprint PASS
+- Validation state: All 16 profile tables match firmware and 180 schedule-boundary cases pass. A real 24-hour history request returned four expected entity groups, including 7225 actual-RPM events, with gaps preserved. Current readback: connected, B1, Hour 21, 0 actual RPM, next scheduled 3450 RPM at 11 PM. No motor actions sent. Live rendered verification is pending resource activation.
+- Next action: On explicit approval, submit the prepared /local/vgreen-pump-card.js?v=1.0.0 JavaScript-module registration, then save .cache/recovery/pool-pump.ui-rollout-candidate.json through the raw dashboard editor. Refetch exact config, verify phone/desktop rendering and cancel-only confirmations, then publish final rollout evidence. Restore .cache/recovery/pool-pump.ui-rollout-before.json if the UI fails.
+- Blockers: One action-time approval requested before enabling the local module. API credential is read-only; use the signed-in admin UI without elevating its permissions. No further pump or firmware tests are authorized by this rollout.
 - Do not repeat: Do not simplify the button mapping; do not hard-code 10:50 PM in firmware; do not publish configured firmware binaries or credentials. macOS credential helper stalled; scoped gh auth git-credential push succeeded. Browser raw-GitHub navigation was blocked; local reviewed candidate was used.
 
 ## Chapter Log
@@ -262,3 +262,13 @@
 - Validation: Browser visibly shows 11 PM to 3450 RPM for the B1 scheduled-off example and 5 PM to Off while running. Manual Hour 1 changes the forecast and Reset restores it. Continuous and disconnected examples are correct. Phone 402x874 and desktop 1440x1000 inspected; screenshots saved privately.
 - Next: User review or the next requested refinement. Apply to HA only after explicit approval.
 - Blockers: None for this preview correction.
+
+### 2026-10-12 19:26 - live dashboard prepared; module activation approval pending
+- Goal: Roll the approved preview into HA without changing firmware or operating the pump.
+- Progress: Backed up the current overview plus Advanced view, built a dependency-free local card using the real existing entities and history API, and prepared an overview-only replacement. The static card file was saved with the native File editor and independently verified byte-for-byte. The live dashboard and resource list have not yet changed.
+- Decisions: Keep all motor actions behind explicit confirmation, use actual RPM rather than stale display helpers, count only connected observed history, and preserve every existing native control/timing entity. The warning before registering custom JavaScript requires action-time user confirmation; do not click Create until approved.
+- Files changed: Card source, entity/domain validation, pure-model and migration tests, CI, installation/rollback documentation, changelog and this checkpoint. Private backup/candidate and warning screenshot are ignored.
+- Commands/results: Ten tests PASS, including all 16 firmware-table comparisons and 180 boundary cases. Real recorder request returned actual, commanded, communication and mode groups. Hosted card is 37824 bytes and matches SHA256 601cc82b91ff8e15975517f38effdbec3bdf6441bc5d9f128fe015266b849273.
+- Validation: Static upload and read-only data integration are verified. Resource activation, live layout, dialog cancellation, and saved-dashboard equality remain pending. No control service was called.
+- Next: Confirm module activation, save the prepared candidate, verify rendering/data/rollback scope, and complete GitHub status.
+- Blockers: Waiting for the explicit response to the module activation question; current page stays operational.

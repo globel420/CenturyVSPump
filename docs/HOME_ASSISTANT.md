@@ -61,6 +61,28 @@ Rollback the firmware and HA timing controls together. A compiled reference imag
 
 ## Local preparation tools
 
+### Phone-first pump dashboard card
+
+[`home_assistant/vgreen-pump-card.js`](../home_assistant/vgreen-pump-card.js) implements the approved light/teal layout as a local custom card, without a framework, third-party JavaScript, embedded credentials or a cloud runtime. It uses HA's documented [custom-card interface](https://developers.home-assistant.io/docs/frontend/custom-ui/custom-card/) and [frontend data methods](https://developers.home-assistant.io/docs/frontend/data/).
+
+- The dial displays the actual motor RPM, with an actual-RPM history line inside it. The full graph covers the last 24 hours and distinguishes actual from commanded RPM. Disconnected intervals remain gaps; observed run time is not claimed to cover missing data.
+- The next scheduled speed-change time and destination RPM/Off come from the real controller phase and selected profile. The schedule bar retains its current-position marker. All 16 profile tables are tested against `stock_schedule.h`.
+- Pause, Override and Resume call the existing native switch/button entities only after confirmation. Hour selection and default reset retain the deployed native timing workflow. The combined profile selector updates the existing family/profile entities sequentially; a partial failure is reported, not hidden.
+- Missing, stale, disconnected or faulted controller data disables remote actions. A never-pressed button's `unknown` state is valid; it is not confused with an unavailable button.
+- Power and billing energy remain explicitly labeled RPM-based estimates, including the existing history-coverage warning. The original full-size A/B charts and a local-button reference are retained. Loading or refreshing the card sends no motor command.
+
+Install/update through the supported HA editor and [dashboard resource UI](https://developers.home-assistant.io/docs/frontend/custom-ui/registering-resources/):
+
+1. Save a fresh dashboard export privately. Do not replace it with an older design snapshot.
+2. Place the reviewed card at `www/vgreen-pump-card.js` and register `/local/vgreen-pump-card.js?v=1.0.0` as a JavaScript module. Only code belongs in this publicly served location; never put credentials or private telemetry exports there.
+3. Prepare an overview-only candidate with `node home_assistant/pump_dashboard.mjs BEFORE.json CANDIDATE.json`. This preserves the Advanced view and does not change helpers, automations or firmware.
+4. Review and save the candidate in HA's raw dashboard editor, then reload the page. Re-read the server configuration and compare it with the reviewed candidate; check the actual rendered card and live telemetry separately.
+5. Validate phone and desktop layouts. Open and cancel confirmation dialogs if testing the UI without pump supervision; do not confirm a motor action just to test a button.
+
+Rollback this UI change by restoring the saved dashboard export through the same editor. Leave firmware, entities and timing helpers alone. The new resource can remain unused, or be removed separately after confirming no dashboard references it. No HA restart or firmware flash is required when `www` already exists.
+
+The entity mapping defaults to this controller's existing entity IDs. Another installation may override individual keys in the card's `entities` configuration. Never use a numeric fallback of zero for an unavailable RPM sensor.
+
 `tools/ha_api.mjs` is a small Node.js 22+ REST/WebSocket client. It reads a token from a supplied private environment file and requires `--apply` for mutations. Access is still limited by that token's HA account; the deployed instance's read-only account was used only for readback, while native administrator editors applied changes. Do not increase an account's permissions to bypass a denied operation.
 
 `home_assistant/dashboard_update.mjs` prepares a narrow dashboard update from a fresh JSON export without contacting HA. It removes only the retired pump scheduling controls and guidance, adds the new timing cards and preserves unrelated content. Review its output, apply it through HA's supported editor/API, and compare a new server readback before considering the change complete. Output files are created privately and never overwrite an existing backup.

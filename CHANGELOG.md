@@ -1,5 +1,12 @@
 # Changes
 
+## Dashboard card 1.0.0 — implementation prepared 2026-10-12
+
+- Add a local, phone-first HA pump card matching the approved light/teal design, with actual-RPM dial and internal history line, next scheduled speed change, moving schedule marker, existing manual controls, all 16 profiles and the original schedule images.
+- Use real HA state/history. Exclude communication gaps from observed run time, label incomplete energy estimates and disable remote actions on stale, disconnected or unknown/faulted controller state.
+- Require confirmation for pump/timing/profile actions. Keep existing native entities and timing scripts; loading the card sends no pump command.
+- Add an overview-only migration, rollback instructions and ten passing HA/card test cases, including 180 schedule-boundary checks. Activation and live rendered validation are tracked separately from this implementation checkpoint.
+
 ## 0.2.0-rc1 — installed; core field test accepted 2026-10-12
 
 - Replace ATOM GPIO39 multi-click YAML with a local, debounced button state machine. Implement hold-on-release, mode-specific actions, local profile programming and the manual's LED timing.
